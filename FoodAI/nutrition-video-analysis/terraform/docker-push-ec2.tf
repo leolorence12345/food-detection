@@ -136,8 +136,33 @@ resource "aws_instance" "docker_push_temp" {
     systemctl enable docker
     usermod -a -G docker ec2-user
 
-    # Download and execute build script as ec2-user
-    su - ec2-user -c 'curl -fsSL https://raw.githubusercontent.com/PraneethKumarT/FoodAI/main/nutrition-video-analysis/terraform/docker/build-script.sh | bash'
+    # Build and push Docker image directly
+    REGION="us-east-1"
+    REPO_NAME="nutrition-video-analysis-dev-video-processor"
+    ACCOUNT_ID=\$(aws sts get-caller-identity --query Account --output text)
+    ECR_REPO="\$ACCOUNT_ID.dkr.ecr.\$REGION.amazonaws.com/\$REPO_NAME"
+
+    # Clone repo as ec2-user
+    cd /home/ec2-user
+    sudo -u ec2-user git clone https://github.com/leolorence12345/food-detection.git
+    cd food-detection/FoodAI/nutrition-video-analysis/terraform/docker
+
+    # Login to ECR as ec2-user
+    sudo -u ec2-user aws ecr get-login-password --region \$REGION | docker login --username AWS --password-stdin \$ECR_REPO
+
+    # Build
+    sudo -u ec2-user docker build -t nutrition-api:latest .
+
+    # Tag
+    sudo -u ec2-user docker tag nutrition-api:latest \$ECR_REPO:latest
+    sudo -u ec2-user docker tag nutrition-api:latest \$ECR_REPO:\$(date +%Y%m%d-%H%M%S)
+
+    # Push
+    sudo -u ec2-user docker push \$ECR_REPO:latest
+    sudo -u ec2-user docker push \$ECR_REPO:\$(date +%Y%m%d-%H%M%S)
+
+    # Create success marker
+    echo "Build completed at \$(date)" | aws s3 cp - s3://nutrition-video-analysis-dev-videos-dbenpoj2/build-complete.txt
   EOF
   )
 

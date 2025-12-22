@@ -1,7 +1,8 @@
 # Nutrition Video Analysis - ECS Worker Container
 # CPU-optimized for Fargate (no GPU support)
 
-FROM python:3.10-slim
+# Use Amazon ECR Public Gallery to avoid Docker Hub rate limits
+FROM public.ecr.aws/docker/library/python:3.10-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
