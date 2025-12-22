@@ -69,7 +69,8 @@ def load_florence2(model_name: str = "microsoft/Florence-2-base-ft", device: str
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         trust_remote_code=True,
-        cache_dir=None
+        cache_dir=None,
+        attn_implementation="eager"  # Use eager attention instead of flash_attn for CPU
     ).to(device)
     
     model.eval()
