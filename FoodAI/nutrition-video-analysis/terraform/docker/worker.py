@@ -246,67 +246,7 @@ def real_process_video(video_path: str, job_id: str) -> dict:
     }
 
 
-def mock_process_video(video_path: str, job_id: str) -> dict:
-    """Mock video processing for testing infrastructure."""
-
-    print("Running mock video processing...")
-
-    # Simulate processing time
-    for i in range(10):
-        time.sleep(1)
-        progress = (i + 1) * 10
-        update_job_status(job_id, 'processing', progress=progress)
-        print(f"Processing progress: {progress}%")
-
-    # Return mock results
-    return {
-        'job_id': job_id,
-        'video_path': video_path,
-        'detected_items': [
-            {
-                'id': 1,
-                'name': 'apple',
-                'confidence': 0.95,
-                'volume_ml': 150.0,
-                'mass_g': 150.0,
-                'calories': 78.0,
-                'nutrition': {
-                    'protein_g': 0.4,
-                    'carbs_g': 20.7,
-                    'fat_g': 0.2,
-                    'fiber_g': 3.6
-                }
-            },
-            {
-                'id': 2,
-                'name': 'banana',
-                'confidence': 0.92,
-                'volume_ml': 120.0,
-                'mass_g': 118.0,
-                'calories': 105.0,
-                'nutrition': {
-                    'protein_g': 1.3,
-                    'carbs_g': 27.0,
-                    'fat_g': 0.4,
-                    'fiber_g': 3.1
-                }
-            }
-        ],
-        'meal_summary': {
-            'total_calories': 183.0,
-            'total_protein_g': 1.7,
-            'total_carbs_g': 47.7,
-            'total_fat_g': 0.6,
-            'total_fiber_g': 6.7,
-            'item_count': 2
-        },
-        'processing_info': {
-            'frames_processed': 60,
-            'processing_time_seconds': 10.0,
-            'device': DEVICE,
-            'mock': True
-        }
-    }
+# Mock processing function removed - code must fail on errors, not silently use mock
 
 
 def process_message(message: dict):
