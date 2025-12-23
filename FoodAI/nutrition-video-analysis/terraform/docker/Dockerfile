@@ -34,6 +34,11 @@ RUN pip install --no-cache-dir \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create dummy flash_attn module to satisfy Florence-2 import check
+# The actual model will use eager attention as specified in attn_implementation parameter
+RUN mkdir -p /usr/local/lib/python3.10/site-packages/flash_attn && \
+    echo "# Dummy flash_attn module for Florence-2 CPU compatibility" > /usr/local/lib/python3.10/site-packages/flash_attn/__init__.py
+
 # Copy worker script
 COPY worker.py .
 
