@@ -10,6 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HF_HUB_OFFLINE=0
 ENV TRANSFORMERS_OFFLINE=0
+ENV TRUST_REMOTE_CODE=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
