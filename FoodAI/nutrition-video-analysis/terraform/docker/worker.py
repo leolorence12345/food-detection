@@ -3,6 +3,30 @@
 ECS Worker - Polls SQS queue and processes video files for nutrition analysis.
 """
 
+# CRITICAL: Patch transformers.utils BEFORE importing anything else
+# This must be the FIRST thing that runs, before any imports
+# Florence-2's custom code executes at import time and needs this function
+import sys
+import importlib.util
+
+# Patch transformers.utils module before it's imported
+def patch_transformers_utils():
+    """Patch transformers.utils to add missing flash_attn function"""
+    # Import transformers.utils (this will import transformers if not already imported)
+    import transformers.utils as transformers_utils
+    
+    if not hasattr(transformers_utils, 'is_flash_attn_greater_or_equal_2_10'):
+        def is_flash_attn_greater_or_equal_2_10():
+            """Check if flash_attn version >= 2.10. Returns False for CPU-only environments."""
+            return False  # Always False for CPU, which is what we want
+        transformers_utils.is_flash_attn_greater_or_equal_2_10 = is_flash_attn_greater_or_equal_2_10
+        print("✅ Applied monkey patch for is_flash_attn_greater_or_equal_2_10 at worker.py startup")
+        return True
+    return False
+
+# Apply patch immediately
+patch_applied = patch_transformers_utils()
+
 import json
 import os
 import sys
