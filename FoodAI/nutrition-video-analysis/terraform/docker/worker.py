@@ -162,13 +162,13 @@ def process_video(video_path: str, job_id: str) -> dict:
         }
 
     except ImportError as e:
-        print(f"Pipeline not available, using mock processing: {e}")
-        # Mock processing for testing without full pipeline
-        return mock_process_video(video_path, job_id)
-    except Exception as e:
-        print(f"Real processing failed: {e}, falling back to mock")
+        print(f"CRITICAL: Pipeline not available: {e}")
         traceback.print_exc()
-        return mock_process_video(video_path, job_id)
+        raise  # Fail instead of using mock
+    except Exception as e:
+        print(f"CRITICAL: Real processing failed: {e}")
+        traceback.print_exc()
+        raise  # Fail instead of using mock
 
 
 def real_process_video(video_path: str, job_id: str) -> dict:
