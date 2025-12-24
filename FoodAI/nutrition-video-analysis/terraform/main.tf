@@ -1081,7 +1081,8 @@
           { name = "DYNAMODB_JOBS_TABLE", value = aws_dynamodb_table.jobs.name },
           { name = "SQS_VIDEO_QUEUE_URL", value = aws_sqs_queue.video_processing.url },
           { name = "AWS_REGION", value = var.aws_region },
-          { name = "DEVICE", value = "cpu" }  # Change to "cuda" for GPU instances
+          { name = "DEVICE", value = "cpu" },  # Change to "cuda" for GPU instances
+          { name = "FORCE_IMAGE_PULL", value = timestamp() }  # Force task definition update to pull fresh image
         ]
 
         secrets = [
