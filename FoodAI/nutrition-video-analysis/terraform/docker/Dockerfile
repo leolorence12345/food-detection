@@ -46,8 +46,8 @@ RUN echo "numpy==1.24.3" > /tmp/constraints.txt && \
     python -c "import numpy; assert numpy.__version__ == '1.24.3', f'NumPy version {numpy.__version__} is wrong! Expected 1.24.3'"
 
 # Force reinstall transformers to break Docker cache (use version from requirements.txt)
-# Use 4.45.0-4.49.0 for PyTorch 2.1.0 compatibility (4.50.0+ requires PyTorch 2.2.0+)
-RUN pip install --no-cache-dir --force-reinstall "transformers>=4.45.0,<4.50.0"
+# Use 4.40.0-4.44.x for PyTorch 2.1.0 compatibility (4.45.0+ requires PyTorch 2.2.0+)
+RUN pip install --no-cache-dir --force-reinstall "transformers>=4.40.0,<4.45.0"
 
 # Create dummy flash_attn module to satisfy Florence-2 import check
 # The actual model will use eager attention as specified in attn_implementation parameter
