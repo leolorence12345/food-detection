@@ -147,13 +147,9 @@ class NutritionVideoPipeline:
         video_predictor = self.models.sam2
         metric3d_model = self.models.metric3d
         
-        # CRITICAL: Ensure NumPy is available for PyTorch before SAM2 uses it
-        # PyTorch's torch.from_numpy() requires NumPy to be imported and available
-        import numpy as np
-        # Force PyTorch to recognize NumPy by creating a test array
-        test_array = np.array([1, 2, 3])
-        _ = torch.from_numpy(test_array)  # This ensures PyTorch can see NumPy
-        logger.info(f"NumPy {np.__version__} verified - PyTorch can access NumPy")
+        # NumPy is already imported at the top of this file (line 8)
+        # PyTorch should be able to access it since numpy is imported before torch
+        logger.info(f"[{job_id}] NumPy {np.__version__} available for PyTorch operations")
         
         # Prepare frame directory for SAM2
         frame_dir = self.config.OUTPUT_DIR / job_id / "frames_temp"
