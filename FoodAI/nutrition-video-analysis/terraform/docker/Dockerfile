@@ -33,13 +33,12 @@ RUN pip install --no-cache-dir \
 
 # Copy and install Python dependencies
 COPY requirements.txt .
-# Pin numpy to specific version BEFORE installing other packages to prevent upgrades
+# Pin numpy to specific version FIRST and prevent upgrades
 # Some packages (pandas, scipy) try to upgrade numpy to 2.x, which breaks PyTorch 2.1.0
 RUN pip install --no-cache-dir "numpy==1.24.3" && \
-    pip install --no-cache-dir -r requirements.txt --no-deps && \
-    pip install --no-cache-dir -r requirements.txt || \
-    (pip install --no-cache-dir "numpy==1.24.3" --force-reinstall && \
-     pip install --no-cache-dir -r requirements.txt)
+    pip install --no-cache-dir -r requirements.txt && \
+    pip check && \
+    python -c "import numpy; assert numpy.__version__.startswith('1.'), f'NumPy version {numpy.__version__} is too new!'"
 
 # Force reinstall transformers to break Docker cache (use version from requirements.txt)
 # Use 4.45.0-4.49.0 for PyTorch 2.1.0 compatibility (4.50.0+ requires PyTorch 2.2.0+)
