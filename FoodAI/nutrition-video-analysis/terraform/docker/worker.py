@@ -32,6 +32,11 @@ def patch_transformers_utils():
 # Apply patch immediately
 patch_applied = patch_transformers_utils()
 
+# CRITICAL: Import NumPy BEFORE PyTorch to ensure PyTorch can detect it
+# PyTorch's torch.from_numpy() requires NumPy to be imported first
+import numpy as np
+print(f"✅ NumPy {np.__version__} imported before PyTorch")
+
 import json
 import os
 import sys
