@@ -38,7 +38,8 @@ RUN pip install --no-cache-dir "numpy<2.0.0" && \
     pip install --no-cache-dir -r requirements.txt
 
 # Force reinstall transformers to break Docker cache (use version from requirements.txt)
-RUN pip install --no-cache-dir --force-reinstall "transformers>=4.50.0"
+# Use 4.45.0-4.49.0 for PyTorch 2.1.0 compatibility (4.50.0+ requires PyTorch 2.2.0+)
+RUN pip install --no-cache-dir --force-reinstall "transformers>=4.45.0,<4.50.0"
 
 # Create dummy flash_attn module to satisfy Florence-2 import check
 # The actual model will use eager attention as specified in attn_implementation parameter
