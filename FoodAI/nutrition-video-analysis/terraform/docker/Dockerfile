@@ -33,7 +33,9 @@ RUN pip install --no-cache-dir \
 
 # Copy and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Pin numpy BEFORE installing other packages to prevent upgrades
+RUN pip install --no-cache-dir "numpy<2.0.0" && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Force reinstall transformers to break Docker cache (use version from requirements.txt)
 RUN pip install --no-cache-dir --force-reinstall "transformers>=4.50.0"
