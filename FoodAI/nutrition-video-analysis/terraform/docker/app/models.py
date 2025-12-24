@@ -26,8 +26,12 @@ if not hasattr(transformers_utils, 'is_flash_attn_greater_or_equal_2_10'):
 else:
     print("✅ is_flash_attn_greater_or_equal_2_10 already exists in transformers.utils")
 
-import torch
+# CRITICAL: Import NumPy BEFORE PyTorch to ensure PyTorch can detect it
+# PyTorch's torch.from_numpy() requires NumPy to be imported first
 import numpy as np
+print(f"✅ NumPy {np.__version__} imported before PyTorch in models.py")
+
+import torch
 from pathlib import Path
 from typing import Optional, Dict, Any
 from functools import lru_cache
