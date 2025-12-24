@@ -3,6 +3,11 @@
 ECS Worker - Polls SQS queue and processes video files for nutrition analysis.
 """
 
+# VERSION CHECK: This ensures we're running the latest code (no mock fallback)
+WORKER_VERSION = "v2.0.0-no-mock-2024-12-23"
+print(f"🚀 Worker starting - Version: {WORKER_VERSION}")
+print(f"🚀 This version has NO mock fallback - errors will fail clearly")
+
 # CRITICAL: Patch transformers.utils BEFORE importing anything else
 # This must be the FIRST thing that runs, before any imports
 # Florence-2's custom code executes at import time and needs this function
@@ -186,11 +191,13 @@ def process_video(video_path: str, job_id: str) -> dict:
         }
 
     except ImportError as e:
-        print(f"CRITICAL: Pipeline not available: {e}")
+        print(f"❌ CRITICAL: Pipeline not available: {e}")
+        print(f"❌ Worker version: {WORKER_VERSION} - NO MOCK FALLBACK")
         traceback.print_exc()
         raise  # Fail instead of using mock
     except Exception as e:
-        print(f"CRITICAL: Real processing failed: {e}")
+        print(f"❌ CRITICAL: Real processing failed: {e}")
+        print(f"❌ Worker version: {WORKER_VERSION} - NO MOCK FALLBACK")
         traceback.print_exc()
         raise  # Fail instead of using mock
 
