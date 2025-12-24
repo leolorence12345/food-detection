@@ -2,9 +2,12 @@
 Main Video Processing Pipeline
 Orchestrates Florence-2, SAM2, Metric3D, and RAG for nutrition analysis
 """
+# CRITICAL: Import NumPy BEFORE PyTorch
+# PyTorch checks for NumPy availability at import time
+# If NumPy isn't imported first, torch.from_numpy() will fail with "Numpy is not available"
+import numpy as np
 import cv2
 import torch
-import numpy as np
 from pathlib import Path
 from PIL import Image
 from typing import Dict, List, Tuple, Optional
