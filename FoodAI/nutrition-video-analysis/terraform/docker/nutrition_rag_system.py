@@ -47,13 +47,11 @@ try:
                         kwargs['revision'] = revision
             
             # If still no repo_id/filename, this is likely a metadata call from snapshot_download
-            # The old cached_download API would return None or handle it gracefully
-            # We should return None to let snapshot_download handle the full download itself
-            # snapshot_download will then call cached_download again with proper url/repo_id/filename for actual files
+            # The old cached_download API would raise an error in this case
+            # snapshot_download will catch this and handle the download itself, then call cached_download again with proper parameters
             if repo_id is None or filename is None:
-                # This is a metadata-only call - return None to let snapshot_download handle it
-                # snapshot_download will download the full repo and then call cached_download for individual files
-                return None
+                # Raise an error like the old API would - snapshot_download will catch and handle it
+                raise ValueError(f"cached_download requires 'repo_id' and 'filename' (or 'url'). Got args={args}, kwargs keys={list(kwargs.keys())}")
             
             # Map old cached_download params to hf_hub_download
             # Remove 'mirror' and other unsupported params
