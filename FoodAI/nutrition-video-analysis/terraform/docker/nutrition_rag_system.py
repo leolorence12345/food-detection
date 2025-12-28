@@ -28,16 +28,17 @@ try:
             url = kwargs.pop('url', None)
             if url and (repo_id is None or filename is None):
                 # Parse HuggingFace Hub URL: https://huggingface.co/{repo_id}/resolve/{revision}/{filename}
-                # or: https://huggingface.co/{repo_id}/resolve/main/{filename}
-                match = re.match(r'https://huggingface\.co/([^/]+)/resolve/([^/]+)/(.+)', url)
+                # repo_id can contain slashes (e.g., "sentence-transformers/all-MiniLM-L6-v2")
+                # Pattern: https://huggingface.co/{repo_id}/resolve/{revision}/{filename}
+                match = re.match(r'https://huggingface\.co/(.+?)/resolve/([^/]+)/(.+)', url)
                 if match:
                     repo_id = match.group(1)
                     revision = match.group(2)
                     filename = unquote(match.group(3))
                     kwargs['revision'] = revision  # Set revision from URL
                 else:
-                    # Try alternative URL format
-                    match = re.match(r'https://huggingface\.co/([^/]+)/blob/([^/]+)/(.+)', url)
+                    # Try alternative URL format with /blob/
+                    match = re.match(r'https://huggingface\.co/(.+?)/blob/([^/]+)/(.+)', url)
                     if match:
                         repo_id = match.group(1)
                         revision = match.group(2)
