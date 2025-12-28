@@ -9,22 +9,38 @@ try:
     import huggingface_hub
     if not hasattr(huggingface_hub, 'cached_download'):
         # cached_download was removed in 0.20.0+, use hf_hub_download instead
-        def cached_download(repo_id, filename, cache_dir=None, force_download=False, resume_download=True, proxies=None, etag_timeout=10, local_files_only=False, token=None, revision=None, mirror=None, subfolder=None, **kwargs):
+        # sentence-transformers calls it with **kwargs only (no positional args)
+        def cached_download(*args, **kwargs):
             """Monkey patch: Map cached_download to hf_hub_download for compatibility"""
             from huggingface_hub import hf_hub_download
+            # Extract repo_id and filename from args or kwargs
+            if args:
+                repo_id = args[0] if len(args) > 0 else kwargs.get('repo_id')
+                filename = args[1] if len(args) > 1 else kwargs.get('filename')
+            else:
+                repo_id = kwargs.pop('repo_id', None)
+                filename = kwargs.pop('filename', None)
+            
+            if repo_id is None or filename is None:
+                raise ValueError(f"cached_download requires 'repo_id' and 'filename'. Got args={args}, kwargs keys={list(kwargs.keys())}")
+            
+            # Map old cached_download params to hf_hub_download
+            # Remove 'mirror' as it's not supported in hf_hub_download
+            kwargs.pop('mirror', None)
+            
             return hf_hub_download(
                 repo_id=repo_id,
                 filename=filename,
-                cache_dir=cache_dir,
-                force_download=force_download,
-                resume_download=resume_download,
-                proxies=proxies,
-                etag_timeout=etag_timeout,
-                local_files_only=local_files_only,
-                token=token,
-                revision=revision,
-                subfolder=subfolder,
-                **kwargs
+                cache_dir=kwargs.pop('cache_dir', None),
+                force_download=kwargs.pop('force_download', False),
+                resume_download=kwargs.pop('resume_download', True),
+                proxies=kwargs.pop('proxies', None),
+                etag_timeout=kwargs.pop('etag_timeout', 10),
+                local_files_only=kwargs.pop('local_files_only', False),
+                token=kwargs.pop('token', None),
+                revision=kwargs.pop('revision', None),
+                subfolder=kwargs.pop('subfolder', None),
+                **kwargs  # Pass any remaining kwargs
             )
         huggingface_hub.cached_download = cached_download
         print("✅ Monkey patched cached_download for sentence-transformers compatibility")
