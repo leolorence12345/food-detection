@@ -46,39 +46,14 @@ try:
                         filename = unquote(match.group(3))
                         kwargs['revision'] = revision
             
-            # If still no repo_id/filename, try to extract from call stack (snapshot_download context)
+            # If still no repo_id/filename, this is likely a metadata call from snapshot_download
+            # The old cached_download API would return None or handle it gracefully
+            # We should return None to let snapshot_download handle the full download itself
+            # snapshot_download will then call cached_download again with proper url/repo_id/filename for actual files
             if repo_id is None or filename is None:
-                try:
-                    # Check if we're being called from snapshot_download
-                    stack = inspect.stack()
-                    for frame_info in stack[1:]:  # Skip current frame
-                        frame = frame_info.frame
-                        # Look for model_name_or_path in snapshot_download's local variables
-                        if 'model_name_or_path' in frame.f_locals:
-                            model_name = frame.f_locals['model_name_or_path']
-                            if isinstance(model_name, str) and '/' in model_name:
-                                # This is likely a HuggingFace model ID
-                                repo_id = model_name
-                                # For metadata calls, we might not have a filename
-                                # In this case, we should use snapshot_download instead
-                                if filename is None:
-                                    # This is likely a metadata/config call - use snapshot_download
-                                    from huggingface_hub import snapshot_download as hf_snapshot_download
-                                    cache_dir = kwargs.pop('cache_dir', None)
-                                    token = kwargs.pop('token', None) or kwargs.pop('use_auth_token', None)
-                                    return hf_snapshot_download(
-                                        repo_id=repo_id,
-                                        cache_dir=cache_dir,
-                                        token=token,
-                                        local_files_only=kwargs.pop('local_files_only', False),
-                                        force_download=kwargs.pop('force_download', False),
-                                    )
-                                break
-                except Exception:
-                    pass  # If stack inspection fails, continue with error
-            
-            if repo_id is None or filename is None:
-                raise ValueError(f"cached_download requires 'repo_id' and 'filename' (or 'url'). Got args={args}, kwargs keys={list(kwargs.keys())}")
+                # This is a metadata-only call - return None to let snapshot_download handle it
+                # snapshot_download will download the full repo and then call cached_download for individual files
+                return None
             
             # Map old cached_download params to hf_hub_download
             # Remove 'mirror' and other unsupported params
