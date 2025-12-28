@@ -37,15 +37,23 @@ RUN pip install --no-cache-dir \
 
 # Copy and install Python dependencies
 COPY requirements.txt .
+# CRITICAL: Install huggingface_hub<0.20.0 FIRST before sentence-transformers
+# sentence-transformers 2.2.2 requires cached_download which was removed in huggingface_hub 0.20.0+
+RUN pip install --no-cache-dir "huggingface_hub<0.20.0" && \
+    echo "✅ Installed huggingface_hub<0.20.0 (has cached_download)"
+
 # CRITICAL: Use pip constraints to prevent NumPy from being upgraded
 # Some packages (like pandas, scipy) may try to upgrade NumPy to 2.x
 # We MUST keep NumPy 1.24.3 for PyTorch 2.1.0 compatibility
 RUN echo "numpy==1.24.3" > /tmp/constraints.txt && \
+    echo "huggingface_hub<0.20.0" >> /tmp/constraints.txt && \
     pip install --no-cache-dir -r requirements.txt -c /tmp/constraints.txt && \
     pip install --no-cache-dir --force-reinstall --no-deps "numpy==1.24.3" && \
+    pip install --no-cache-dir --force-reinstall "huggingface_hub<0.20.0" && \
     pip check && \
     python -c "import numpy; actual_version = numpy.__version__; assert actual_version == '1.24.3', f'CRITICAL: NumPy version {actual_version} is wrong! Expected 1.24.3. Build will fail.'" && \
-    echo "✅ Verified NumPy 1.24.3 is installed"
+    python -c "import huggingface_hub; hf_version = huggingface_hub.__version__; from packaging import version; assert version.parse(hf_version) < version.parse('0.20.0'), f'CRITICAL: huggingface_hub version {hf_version} is >=0.20.0! Need <0.20.0 for cached_download.'" && \
+    echo "✅ Verified NumPy 1.24.3 and huggingface_hub<0.20.0 are installed"
 
 # Force reinstall transformers to break Docker cache (use version from requirements.txt)
 # Use 4.40.0-4.44.x for PyTorch 2.1.0 compatibility (4.45.0+ requires PyTorch 2.2.0+)
