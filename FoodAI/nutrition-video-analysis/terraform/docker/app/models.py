@@ -142,6 +142,42 @@ def load_sam2(config_path: str, checkpoint_path: str, device: str = "cuda"):
     return predictor
 
 
+def _patch_metric3d_for_cpu(model, device):
+    """
+    Patch Metric3D model to use CPU instead of hardcoded CUDA.
+    Metric3D's decoder has hardcoded device="cuda" which fails on CPU-only systems.
+    """
+    if device == "cpu":
+        # Find the decoder component (usually in depth_model.decoder)
+        if hasattr(model, 'depth_model') and hasattr(model.depth_model, 'decoder'):
+            decoder = model.depth_model.decoder
+            
+            # Get the actual device from the model
+            model_device = next(model.parameters()).device
+            
+            # Patch get_bins method if it exists
+            if hasattr(decoder, 'get_bins'):
+                original_get_bins = decoder.get_bins.__func__ if hasattr(decoder.get_bins, '__func__') else decoder.get_bins
+                
+                def patched_get_bins(self, bins_num):
+                    """Patched version that uses model's device instead of hardcoded CUDA"""
+                    import math
+                    # Use the device of the model's parameters (should be CPU)
+                    device_to_use = next(self.parameters()).device if list(self.parameters()) else torch.device('cpu')
+                    depth_bins_vec = torch.linspace(
+                        math.log(self.min_val), 
+                        math.log(self.max_val), 
+                        bins_num, 
+                        device=device_to_use
+                    )
+                    return depth_bins_vec
+                
+                # Bind the patched method to the decoder instance
+                import types
+                decoder.get_bins = types.MethodType(patched_get_bins, decoder)
+                logger.info(f"✓ Patched Metric3D decoder.get_bins to use {model_device} instead of CUDA")
+
+
 def load_metric3d(model_name: str = "metric3d_vit_small", device: str = "cuda"):
     """
     Load Metric3D depth estimation model
@@ -178,6 +214,10 @@ def load_metric3d(model_name: str = "metric3d_vit_small", device: str = "cuda"):
         # Also ensure all buffers and registered buffers are moved
         for name, buffer in model.named_buffers():
             buffer.data = buffer.data.to(device)
+        
+        # CRITICAL: Patch Metric3D to use CPU instead of hardcoded CUDA
+        _patch_metric3d_for_cpu(model, device)
+        
         model.eval()
         
         model_cache.set(cache_key, model)
