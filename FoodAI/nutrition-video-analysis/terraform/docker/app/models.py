@@ -142,40 +142,77 @@ def load_sam2(config_path: str, checkpoint_path: str, device: str = "cuda"):
     return predictor
 
 
+def _find_decoder_recursive(module, visited=None):
+    """Recursively find decoder module with get_bins method"""
+    if visited is None:
+        visited = set()
+    
+    module_id = id(module)
+    if module_id in visited:
+        return None
+    visited.add(module_id)
+    
+    # Check if this module has get_bins method
+    if hasattr(module, 'get_bins') and callable(getattr(module, 'get_bins')):
+        return module
+    
+    # Recursively search child modules
+    for name, child in module.named_children():
+        result = _find_decoder_recursive(child, visited)
+        if result is not None:
+            return result
+    
+    return None
+
+
 def _patch_metric3d_for_cpu(model, device):
     """
     Patch Metric3D model to use CPU instead of hardcoded CUDA.
     Metric3D's decoder has hardcoded device="cuda" which fails on CPU-only systems.
     """
     if device == "cpu":
-        # Find the decoder component (usually in depth_model.decoder)
-        if hasattr(model, 'depth_model') and hasattr(model.depth_model, 'decoder'):
-            decoder = model.depth_model.decoder
+        # Get the actual device from the model
+        model_device = next(model.parameters()).device
+        logger.info(f"Patching Metric3D for CPU - model device: {model_device}")
+        
+        # Try to find decoder recursively
+        decoder = _find_decoder_recursive(model)
+        
+        if decoder is None:
+            # Fallback: try common paths
+            if hasattr(model, 'depth_model'):
+                if hasattr(model.depth_model, 'decoder'):
+                    decoder = model.depth_model.decoder
+                elif hasattr(model.depth_model, 'depth_model') and hasattr(model.depth_model.depth_model, 'decoder'):
+                    decoder = model.depth_model.depth_model.decoder
+        
+        if decoder is not None and hasattr(decoder, 'get_bins'):
+            # Store original for reference
+            original_get_bins = decoder.get_bins
             
-            # Get the actual device from the model
-            model_device = next(model.parameters()).device
-            
-            # Patch get_bins method if it exists
-            if hasattr(decoder, 'get_bins'):
-                original_get_bins = decoder.get_bins.__func__ if hasattr(decoder.get_bins, '__func__') else decoder.get_bins
-                
-                def patched_get_bins(self, bins_num):
-                    """Patched version that uses model's device instead of hardcoded CUDA"""
-                    import math
-                    # Use the device of the model's parameters (should be CPU)
+            def patched_get_bins(self, bins_num):
+                """Patched version that uses model's device instead of hardcoded CUDA"""
+                import math
+                # Use the device of the model's parameters (should be CPU)
+                try:
                     device_to_use = next(self.parameters()).device if list(self.parameters()) else torch.device('cpu')
-                    depth_bins_vec = torch.linspace(
-                        math.log(self.min_val), 
-                        math.log(self.max_val), 
-                        bins_num, 
-                        device=device_to_use
-                    )
-                    return depth_bins_vec
+                except:
+                    device_to_use = torch.device('cpu')
                 
-                # Bind the patched method to the decoder instance
-                import types
-                decoder.get_bins = types.MethodType(patched_get_bins, decoder)
-                logger.info(f"✓ Patched Metric3D decoder.get_bins to use {model_device} instead of CUDA")
+                depth_bins_vec = torch.linspace(
+                    math.log(self.min_val), 
+                    math.log(self.max_val), 
+                    bins_num, 
+                    device=device_to_use
+                )
+                return depth_bins_vec
+            
+            # Bind the patched method to the decoder instance
+            import types
+            decoder.get_bins = types.MethodType(patched_get_bins, decoder)
+            logger.info(f"✓ Patched Metric3D decoder.get_bins to use {model_device} instead of CUDA")
+        else:
+            logger.warning("⚠ Could not find Metric3D decoder with get_bins method - CPU patch may fail")
 
 
 def load_metric3d(model_name: str = "metric3d_vit_small", device: str = "cuda"):
