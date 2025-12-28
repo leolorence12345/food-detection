@@ -274,7 +274,7 @@ def process_message(message: dict):
         # Delete the malformed message so it doesn't keep retrying
         try:
             sqs.delete_message(
-                QueueUrl=SQS_QUEUE_URL,
+                QueueUrl=SQS_VIDEO_QUEUE_URL,
                 ReceiptHandle=receipt_handle
             )
             print(f"   ✓ Deleted malformed message")
@@ -289,7 +289,7 @@ def process_message(message: dict):
         # Delete the invalid message
         try:
             sqs.delete_message(
-                QueueUrl=SQS_QUEUE_URL,
+                QueueUrl=SQS_VIDEO_QUEUE_URL,
                 ReceiptHandle=receipt_handle
             )
             print(f"   ✓ Deleted invalid message")
