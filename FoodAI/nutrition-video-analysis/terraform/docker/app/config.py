@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     # Video Processing
     MAX_VIDEO_SIZE_MB: int = 500
     ALLOWED_FORMATS: list = [".mp4", ".avi", ".mov", ".mkv"]
-    FRAME_SKIP: int = 3  # Process every Nth frame (lowered from 10 to capture more frames)
-    MAX_FRAMES: Optional[int] = 100  # None = process all (increased from 60)
+    FRAME_SKIP: int = 5  # Process every Nth frame (balanced for CPU performance)
+    MAX_FRAMES: Optional[int] = 30  # Limit frames for CPU processing speed
     RESIZE_WIDTH: int = 800
 
     # Model Settings
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     caption_type: str = "detailed_caption"  # Florence-2 caption task type
 
     # Tracking Settings
-    DETECTION_INTERVAL: int = 5  # Re-detect every 5 frames (lowered from 30 for better coverage)
+    DETECTION_INTERVAL: int = 10  # Re-detect every 10 frames (balanced for CPU)
     IOU_MATCH_THRESHOLD: float = 0.20
     CENTER_DISTANCE_THRESHOLD: float = 200.0
     LABEL_SIMILARITY_BOOST: float = 0.20
