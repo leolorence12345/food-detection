@@ -1,0 +1,26 @@
+# Example Terraform Variables
+# Copy this to terraform.tfvars and update with your values
+
+# Basic Configuration
+aws_region     = "us-east-1"
+project_name   = "nutrition-video-analysis"
+environment    = "dev"
+gemini_api_key = "your-gemini-api-key-here"
+
+# GPU Configuration
+# Set use_gpu = true to enable GPU support (requires EC2 launch type)
+use_gpu            = false  # Set to true for GPU mode
+gpu_instance_type  = "g4dn.xlarge"  # Options: g4dn.xlarge, g5.xlarge, etc.
+device_type        = "cpu"  # "cpu" or "cuda"
+docker_image_tag   = "latest"  # Use "gpu-test" if you pushed GPU image with that tag
+
+# GPU Scaling
+gpu_min_capacity = 0  # Start with 0 instances, scale up when needed
+gpu_max_capacity = 5  # Maximum GPU instances
+
+# Optional: Specify GPU AMI (leave empty to auto-detect Deep Learning AMI)
+# gpu_instance_ami = "ami-xxxxx"
+
+# Optional: EC2 Key Pair for SSH access to GPU instances
+# gpu_key_pair_name = "my-key-pair"
+
