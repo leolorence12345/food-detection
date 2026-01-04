@@ -45,37 +45,93 @@ class NutritionVideoPipeline:
             'calibrated': False
         }
     
+    def process_image(self, image_path: Path, job_id: str) -> Dict:
+        """
+        Process a single image (same pipeline as video, but with 1 frame)
+
+        Args:
+            image_path: Path to input image
+            job_id: Unique job identifier
+
+        Returns:
+            Complete results dictionary with tracking, volumes, and nutrition
+        """
+        logger.info(f"[{job_id}] Starting image processing: {image_path.name}")
+
+        try:
+            # Load image as a single frame
+            img = cv2.imread(str(image_path))
+            if img is None:
+                raise ValueError(f"Could not load image: {image_path}")
+
+            # Resize if needed
+            if self.config.RESIZE_WIDTH:
+                h, w = img.shape[:2]
+                if w > self.config.RESIZE_WIDTH:
+                    new_h = int(h * self.config.RESIZE_WIDTH / w)
+                    img = cv2.resize(img, (self.config.RESIZE_WIDTH, new_h))
+
+            frames = [img]
+            logger.info(f"[{job_id}] Loaded image as single frame")
+
+            # Step 2: Run tracking pipeline with depth
+            tracking_results = self._run_tracking_pipeline(frames, job_id)
+
+            # Step 3: Analyze nutrition
+            nutrition_results = self._analyze_nutrition(tracking_results, job_id)
+
+            # Step 4: Compile complete results
+            final_results = {
+                'job_id': job_id,
+                'media_name': image_path.name,
+                'media_type': 'image',
+                'timestamp': datetime.utcnow().isoformat(),
+                'num_frames_processed': 1,
+                'calibration': self.calibration,
+                'tracking': tracking_results,
+                'nutrition': nutrition_results,
+                'status': 'completed'
+            }
+
+            logger.info(f"[{job_id}] ✓ Image processing completed successfully")
+            return final_results
+
+        except Exception as e:
+            logger.error(f"[{job_id}] Image processing failed: {e}", exc_info=True)
+            raise
+
     def process_video(self, video_path: Path, job_id: str) -> Dict:
         """
         Main entry point - process entire video
-        
+
         Args:
             video_path: Path to input video
             job_id: Unique job identifier
-            
+
         Returns:
             Complete results dictionary with tracking, volumes, and nutrition
         """
         logger.info(f"[{job_id}] Starting video processing: {video_path.name}")
-        
+
         try:
             # Step 1: Load and prepare frames
             frames = self._load_frames(video_path)
             if not frames:
                 raise ValueError("No frames loaded from video")
-            
+
             logger.info(f"[{job_id}] Loaded {len(frames)} frames")
-            
+
             # Step 2: Run tracking pipeline with depth
             tracking_results = self._run_tracking_pipeline(frames, job_id)
-            
+
             # Step 3: Analyze nutrition
             nutrition_results = self._analyze_nutrition(tracking_results, job_id)
-            
+
             # Step 4: Compile complete results
             final_results = {
                 'job_id': job_id,
-                'video_name': video_path.name,
+                'media_name': video_path.name,
+                'media_type': 'video',
                 'timestamp': datetime.utcnow().isoformat(),
                 'num_frames_processed': len(frames),
                 'calibration': self.calibration,
@@ -83,10 +139,10 @@ class NutritionVideoPipeline:
                 'nutrition': nutrition_results,
                 'status': 'completed'
             }
-            
+
             logger.info(f"[{job_id}] ✓ Processing completed successfully")
             return final_results
-            
+
         except Exception as e:
             logger.error(f"[{job_id}] Pipeline failed: {e}", exc_info=True)
             raise
