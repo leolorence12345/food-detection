@@ -366,15 +366,15 @@ class NutritionVideoPipeline:
                         'height_cm': volume_metrics['avg_height_cm'],
                         'area_cm2': volume_metrics['surface_area_cm2']
                     })
+                    
+                    # Update tracked object box with SAM2's refined box
+                    mask_coords = np.argwhere(mask)
+                    if len(mask_coords) > 0:
+                        y_min, x_min = mask_coords.min(axis=0)
+                        y_max, x_max = mask_coords.max(axis=0)
+                        tracked_objects[obj_id]['box'] = [x_min, y_min, x_max, y_max]
                 else:
                     logger.warning(f"[{job_id}] Frame {frame_idx}: relative_idx {relative_idx} not in video_segments! Available: {list(video_segments.keys())}")
-                            
-                            # Update tracked object box with SAM2's refined box
-                            mask_coords = np.argwhere(mask)
-                            if len(mask_coords) > 0:
-                                y_min, x_min = mask_coords.min(axis=0)
-                                y_max, x_max = mask_coords.max(axis=0)
-                                tracked_objects[obj_id]['box'] = [x_min, y_min, x_max, y_max]
         
         # Compile results
         results = {
