@@ -317,6 +317,15 @@ class NutritionVideoPipeline:
                                     box, depth_map_meters, frame.shape[1]
                                 )
                                 self.calibration['calibrated'] = True
+
+                        # Fallback calibration if no plate detected after first detection pass
+                        if not self.calibration['calibrated'] and frame_idx >= self.config.DETECTION_INTERVAL:
+                            logger.warning("No plate detected - using default calibration")
+                            frame_width = frame.shape[1]
+                            # Assume 800px ≈ 50cm scene width as reasonable default
+                            self.calibration['pixels_per_cm'] = frame_width / 50.0
+                            self.calibration['calibrated'] = True
+                            logger.info(f"Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
                             
                             # Calculate volume
                             volume_metrics = self._calculate_volume_metric3d(
@@ -479,15 +488,48 @@ class NutritionVideoPipeline:
         return depth_map_meters
     
     def _calibrate_from_plate(self, plate_box, depth_map_meters, frame_width):
-        """Calibrate pixel scale using plate"""
+        """Calibrate pixel scale using plate with validation"""
         x1, y1, x2, y2 = [int(v) for v in plate_box]
         plate_width_px = x2 - x1
+        plate_height_px = y2 - y1
+
+        # Calculate potential calibration
         pixels_per_cm = plate_width_px / self.config.REFERENCE_PLATE_DIAMETER_CM
-        
+
+        # Validation: Check if this is a reasonable plate detection
+        aspect_ratio = plate_width_px / max(plate_height_px, 1)
+        is_reasonable_plate = (
+            0.7 < aspect_ratio < 1.4 and  # Roughly circular
+            plate_width_px > 50 and  # Not too small
+            pixels_per_cm > 3.0 and  # Minimum reasonable scale
+            pixels_per_cm < 30.0  # Maximum reasonable scale for 800px image
+        )
+
+        if not is_reasonable_plate:
+            logger.warning(f"Plate detection unreliable (width={plate_width_px}px, aspect={aspect_ratio:.2f}, px/cm={pixels_per_cm:.2f})")
+            # Use depth-based fallback calibration
+            plate_region = depth_map_meters[y1:y2, x1:x2]
+            avg_depth_m = np.median(plate_region[plate_region > 0])
+
+            # Estimate pixels_per_cm from depth and frame width
+            # Assume camera FOV ~60 degrees horizontal
+            if avg_depth_m > 0.1:
+                estimated_scene_width_cm = avg_depth_m * 100  # rough approximation
+                pixels_per_cm = frame_width / estimated_scene_width_cm
+                pixels_per_cm = np.clip(pixels_per_cm, 8.0, 25.0)  # Reasonable bounds
+                logger.info(f"Using depth-based calibration: {pixels_per_cm:.2f} px/cm (depth={avg_depth_m:.2f}m)")
+            else:
+                # Ultimate fallback: assume 800px ≈ 50cm scene width
+                pixels_per_cm = frame_width / 50.0
+                logger.warning(f"Using fallback calibration: {pixels_per_cm:.2f} px/cm")
+
+            return pixels_per_cm, avg_depth_m if avg_depth_m > 0 else 0.5
+
+        # Plate detection looks good, use it
         plate_region = depth_map_meters[y1:y2, x1:x2]
         avg_plate_depth_m = np.median(plate_region[plate_region > 0])
-        
-        logger.info(f"Calibrated: {pixels_per_cm:.2f} px/cm, plate depth: {avg_plate_depth_m:.2f}m")
+
+        logger.info(f"✓ Plate calibration: {pixels_per_cm:.2f} px/cm, depth: {avg_plate_depth_m:.2f}m")
         return pixels_per_cm, avg_plate_depth_m
     
     def _calculate_volume_metric3d(self, mask, depth_map_meters, box, label):
