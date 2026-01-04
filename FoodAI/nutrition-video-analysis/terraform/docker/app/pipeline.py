@@ -279,8 +279,10 @@ class NutritionVideoPipeline:
                     tracked_objects = new_tracked_objects
                     
                     # Add objects to SAM2
+                    successfully_added = []
                     for i, obj_id in enumerate(ids_to_add):
                         box_sam = np.array([boxes_to_add[i]])
+                        label = tracked_objects[obj_id]['label']
                         try:
                             video_predictor.add_new_points_or_box(
                                 inference_state=inference_state,
@@ -288,8 +290,11 @@ class NutritionVideoPipeline:
                                 obj_id=obj_id,
                                 box=box_sam,
                             )
+                            successfully_added.append(obj_id)
+                            logger.info(f"[{job_id}] Frame {frame_idx}: Successfully added object ID{obj_id} ({label}) to SAM2")
                         except Exception as e:
-                            logger.warning(f"Could not add object ID{obj_id}: {e}")
+                            logger.error(f"[{job_id}] Frame {frame_idx}: FAILED to add object ID{obj_id} ({label}) to SAM2: {e}", exc_info=True)
+                    logger.info(f"[{job_id}] Frame {frame_idx}: Added {len(successfully_added)}/{len(ids_to_add)} objects to SAM2. Successfully added IDs: {successfully_added}")
             
             # Get SAM2 masks for current frame
             if tracked_objects:
@@ -305,10 +310,17 @@ class NutritionVideoPipeline:
                         inference_state, relative_idx
                     )
                     logger.info(f"[{job_id}] Frame {frame_idx}: SAM2 infer_single_frame returned frame_idx={out_frame_idx}, objects={out_obj_ids}")
+                    logger.info(f"[{job_id}] Frame {frame_idx}: Tracked objects before SAM2: {list(tracked_objects.keys())}")
                     video_segments[out_frame_idx] = {
                         out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
                         for i, out_obj_id in enumerate(out_obj_ids)
                     }
+                    logger.info(f"[{job_id}] Frame {frame_idx}: SAM2 produced masks for {len(video_segments[out_frame_idx])} objects: {list(video_segments[out_frame_idx].keys())}")
+                    missing_objects = set(tracked_objects.keys()) - set(out_obj_ids)
+                    if missing_objects:
+                        logger.warning(f"[{job_id}] Frame {frame_idx}: WARNING - {len(missing_objects)} tracked objects did NOT get SAM2 masks: {missing_objects}")
+                        for missing_id in missing_objects:
+                            logger.warning(f"[{job_id}] Frame {frame_idx}: Missing object ID{missing_id} label: {tracked_objects[missing_id]['label']}")
                     
                     # Also propagate to future frames if there are any
                     for prop_frame_idx, prop_obj_ids, prop_mask_logits in video_predictor.propagate_in_video(inference_state):
