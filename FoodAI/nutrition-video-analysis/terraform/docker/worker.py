@@ -103,9 +103,9 @@ def update_job_status(job_id: str, status: str, **kwargs):
     )
 
 
-def download_video(s3_bucket: str, s3_key: str, local_path: str):
-    """Download video from S3."""
-    print(f"Downloading video from s3://{s3_bucket}/{s3_key}")
+def download_media(s3_bucket: str, s3_key: str, local_path: str):
+    """Download media file (video or image) from S3."""
+    print(f"Downloading media from s3://{s3_bucket}/{s3_key}")
     s3.download_file(s3_bucket, s3_key, local_path)
     print(f"Downloaded to {local_path}")
 
@@ -123,6 +123,110 @@ def upload_results(job_id: str, results: dict):
 
     print(f"Results uploaded to s3://{S3_RESULTS_BUCKET}/{results_key}")
     return results_key
+
+
+def is_image_file(filename: str) -> bool:
+    """Check if file is an image based on extension."""
+    image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.tif'}
+    return Path(filename).suffix.lower() in image_extensions
+
+
+def is_video_file(filename: str) -> bool:
+    """Check if file is a video based on extension."""
+    video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv'}
+    return Path(filename).suffix.lower() in video_extensions
+
+
+def process_media(media_path: str, job_id: str) -> dict:
+    """
+    Process media file (image or video) through the nutrition analysis pipeline.
+
+    Pipeline:
+    1. Detect file type (image vs video)
+    2. Extract frames (1 for image, multiple for video)
+    3. Detect food items with Florence-2
+    4. Track objects with SAM2
+    5. Estimate depth with Metric3D
+    6. Calculate volumes
+    7. Look up nutrition data
+    8. Return results
+    """
+
+    # Update status to processing
+    update_job_status(job_id, 'processing', progress=0)
+
+    try:
+        # Import processing modules (loaded here to avoid import errors during container startup)
+        sys.path.insert(0, '/app')
+
+        from app.pipeline import NutritionVideoPipeline
+        from app.models import ModelManager
+        from app.config import Settings
+
+        # Initialize configuration
+        print("Initializing configuration...")
+        config = Settings()
+        config.DEVICE = DEVICE
+        config.GEMINI_API_KEY = GEMINI_API_KEY
+
+        update_job_status(job_id, 'processing', progress=5)
+
+        # Initialize models
+        print("Loading AI models...")
+        model_manager = ModelManager(config)
+
+        update_job_status(job_id, 'processing', progress=10)
+
+        # Initialize pipeline
+        print("Initializing processing pipeline...")
+        pipeline = NutritionVideoPipeline(model_manager, config)
+
+        update_job_status(job_id, 'processing', progress=15)
+
+        # Process media based on type
+        from pathlib import Path
+        media_path_obj = Path(media_path)
+
+        if is_image_file(media_path):
+            print(f"Processing image: {media_path}")
+            results = pipeline.process_image(media_path_obj, job_id)
+        elif is_video_file(media_path):
+            print(f"Processing video: {media_path}")
+            results = pipeline.process_video(media_path_obj, job_id)
+        else:
+            raise ValueError(f"Unsupported file type: {media_path_obj.suffix}")
+
+        update_job_status(job_id, 'processing', progress=95)
+
+        # Transform results to expected format
+        meal_summary = results.get('nutrition', {}).get('meal_summary', {})
+
+        return {
+            'job_id': job_id,
+            'media_path': media_path,
+            'media_type': results.get('media_type', 'unknown'),
+            'detected_items': results.get('nutrition', {}).get('items', []),
+            'meal_summary': meal_summary,
+            'processing_info': {
+                'frames_processed': results.get('num_frames_processed', 0),
+                'device': DEVICE,
+                'mock': False,
+                'calibration': results.get('calibration', {})
+            },
+            'tracking': results.get('tracking', {}),
+            'full_results': results
+        }
+
+    except ImportError as e:
+        print(f"❌ CRITICAL: Pipeline not available: {e}")
+        print(f"❌ Worker version: {WORKER_VERSION} - NO MOCK FALLBACK")
+        traceback.print_exc()
+        raise  # Fail instead of using mock
+    except Exception as e:
+        print(f"❌ CRITICAL: Real processing failed: {e}")
+        print(f"❌ Worker version: {WORKER_VERSION} - NO MOCK FALLBACK")
+        traceback.print_exc()
+        raise  # Fail instead of using mock
 
 
 def process_video(video_path: str, job_id: str) -> dict:
@@ -303,7 +407,7 @@ def process_message(message: dict):
 
     print(f"\n{'='*60}")
     print(f"Processing job: {job_id}")
-    print(f"Video: s3://{s3_bucket}/{s3_key}")
+    print(f"Media: s3://{s3_bucket}/{s3_key}")
     print(f"{'='*60}\n")
 
     try:
@@ -312,15 +416,15 @@ def process_message(message: dict):
 
         # Create temp directory for processing
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Download video
-            video_filename = os.path.basename(s3_key)
-            video_path = os.path.join(tmpdir, video_filename)
-            download_video(s3_bucket, s3_key, video_path)
+            # Download media file (video or image)
+            media_filename = os.path.basename(s3_key)
+            media_path = os.path.join(tmpdir, media_filename)
+            download_media(s3_bucket, s3_key, media_path)
 
             update_job_status(job_id, 'processing', progress=5)
 
-            # Process video
-            results = process_video(video_path, job_id)
+            # Process media (image or video)
+            results = process_media(media_path, job_id)
 
             # Upload results
             results_key = upload_results(job_id, results)
