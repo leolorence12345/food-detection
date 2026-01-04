@@ -289,8 +289,9 @@ class NutritionVideoPipeline:
                         except Exception as e:
                             logger.warning(f"Could not add object ID{obj_id}: {e}")
             
-            # Propagate SAM2 masks
+            # Process tracked objects (with or without SAM2 masks)
             if tracked_objects:
+                # Try to get SAM2 masks
                 video_segments = {}
                 try:
                     for out_frame_idx, out_obj_ids, out_mask_logits in video_predictor.propagate_in_video(inference_state):
@@ -322,7 +323,7 @@ class NutritionVideoPipeline:
                         x1, y1, x2, y2 = [int(v) for v in box]
                         mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=bool)
                         mask[y1:y2, x1:x2] = True
-                        logger.debug(f"Using bounding box mask for object {obj_id} ({label})")
+                        logger.info(f"[{job_id}] Using bounding box mask for object {obj_id} ({label})")
                     
                     # Calibrate if this is a plate
                     if not self.calibration['calibrated'] and 'plate' in label.lower():
@@ -333,12 +334,12 @@ class NutritionVideoPipeline:
                     
                     # Fallback calibration if no plate detected (for single images or after first frame)
                     if not self.calibration['calibrated']:
-                        logger.warning("No plate detected - using default calibration")
+                        logger.warning(f"[{job_id}] No plate detected - using default calibration")
                         frame_width = frame.shape[1]
                         # Assume 800px ≈ 50cm scene width as reasonable default
                         self.calibration['pixels_per_cm'] = frame_width / 50.0
                         self.calibration['calibrated'] = True
-                        logger.info(f"Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
+                        logger.info(f"[{job_id}] Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
                     
                     # Calculate volume
                     volume_metrics = self._calculate_volume_metric3d(
@@ -355,6 +356,8 @@ class NutritionVideoPipeline:
                         'height_cm': volume_metrics['avg_height_cm'],
                         'area_cm2': volume_metrics['surface_area_cm2']
                     })
+                    
+                    logger.info(f"[{job_id}] Object {obj_id} ({label}): volume={volume_metrics['volume_ml']:.1f}ml, area={volume_metrics['surface_area_cm2']:.1f}cm²")
                     
                     # Update tracked object box with SAM2's refined box if available
                     if has_sam2_masks and obj_id in video_segments[relative_idx]:
