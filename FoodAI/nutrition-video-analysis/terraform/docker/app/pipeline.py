@@ -292,31 +292,51 @@ class NutritionVideoPipeline:
             # Propagate SAM2 masks
             if tracked_objects:
                 video_segments = {}
-                for out_frame_idx, out_obj_ids, out_mask_logits in video_predictor.propagate_in_video(inference_state):
-                    video_segments[out_frame_idx] = {
-                        out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
-                        for i, out_obj_id in enumerate(out_obj_ids)
-                    }
+                try:
+                    for out_frame_idx, out_obj_ids, out_mask_logits in video_predictor.propagate_in_video(inference_state):
+                        video_segments[out_frame_idx] = {
+                            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                            for i, out_obj_id in enumerate(out_obj_ids)
+                        }
+                except Exception as e:
+                    logger.warning(f"SAM2 propagation failed: {e}, using bounding box fallback")
+                    video_segments = {}
+                
+                # Estimate depth (always, regardless of SAM2 success)
+                depth_map_meters = self._estimate_depth_metric3d(frame, metric3d_model)
                 
                 # Get current frame's masks
                 relative_idx = frame_idx - current_window_start
+                objects_to_process = []
+                
                 if relative_idx in video_segments:
-                    # Estimate depth
-                    depth_map_meters = self._estimate_depth_metric3d(frame, metric3d_model)
-                    
-                    # Calculate volumes
+                    # Use SAM2 masks
                     for obj_id in video_segments[relative_idx]:
                         if obj_id in tracked_objects:
                             mask = video_segments[relative_idx][obj_id][0]
                             box = tracked_objects[obj_id]['box']
                             label = tracked_objects[obj_id]['label']
-                            
-                            # Calibrate if this is a plate
-                            if not self.calibration['calibrated'] and 'plate' in label.lower():
-                                self.calibration['pixels_per_cm'], _ = self._calibrate_from_plate(
-                                    box, depth_map_meters, frame.shape[1]
-                                )
-                                self.calibration['calibrated'] = True
+                            objects_to_process.append((obj_id, mask, box, label))
+                else:
+                    # Fallback: use bounding boxes to create masks
+                    logger.info(f"Frame {frame_idx}: No SAM2 masks, using bounding box fallback")
+                    for obj_id, obj_data in tracked_objects.items():
+                        box = obj_data['box']
+                        label = obj_data['label']
+                        # Create rectangular mask from bounding box
+                        x1, y1, x2, y2 = [int(v) for v in box]
+                        mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=bool)
+                        mask[y1:y2, x1:x2] = True
+                        objects_to_process.append((obj_id, mask, box, label))
+                
+                # Process all objects (from SAM2 or fallback)
+                for obj_id, mask, box, label in objects_to_process:
+                    # Calibrate if this is a plate
+                    if not self.calibration['calibrated'] and 'plate' in label.lower():
+                        self.calibration['pixels_per_cm'], _ = self._calibrate_from_plate(
+                            box, depth_map_meters, frame.shape[1]
+                        )
+                        self.calibration['calibrated'] = True
 
                     # Fallback calibration if no plate detected (for single images or after detection)
                     if not self.calibration['calibrated']:
@@ -342,13 +362,14 @@ class NutritionVideoPipeline:
                         'height_cm': volume_metrics['avg_height_cm'],
                         'area_cm2': volume_metrics['surface_area_cm2']
                     })
-                            
-                            # Update tracked object box with SAM2's refined box
-                            mask_coords = np.argwhere(mask)
-                            if len(mask_coords) > 0:
-                                y_min, x_min = mask_coords.min(axis=0)
-                                y_max, x_max = mask_coords.max(axis=0)
-                                tracked_objects[obj_id]['box'] = [x_min, y_min, x_max, y_max]
+                    
+                    # Update tracked object box with SAM2's refined box (if available)
+                    if relative_idx in video_segments and obj_id in video_segments[relative_idx]:
+                        mask_coords = np.argwhere(mask)
+                        if len(mask_coords) > 0:
+                            y_min, x_min = mask_coords.min(axis=0)
+                            y_max, x_max = mask_coords.max(axis=0)
+                            tracked_objects[obj_id]['box'] = [x_min, y_min, x_max, y_max]
         
         # Compile results
         results = {
