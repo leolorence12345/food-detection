@@ -318,30 +318,30 @@ class NutritionVideoPipeline:
                                 )
                                 self.calibration['calibrated'] = True
 
-                        # Fallback calibration if no plate detected after first detection pass
-                        if not self.calibration['calibrated'] and frame_idx >= self.config.DETECTION_INTERVAL:
-                            logger.warning("No plate detected - using default calibration")
-                            frame_width = frame.shape[1]
-                            # Assume 800px ≈ 50cm scene width as reasonable default
-                            self.calibration['pixels_per_cm'] = frame_width / 50.0
-                            self.calibration['calibrated'] = True
-                            logger.info(f"Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
-                            
-                            # Calculate volume
-                            volume_metrics = self._calculate_volume_metric3d(
-                                mask, depth_map_meters, box, label
-                            )
-                            
-                            # Store in history
-                            if obj_id not in volume_history:
-                                volume_history[obj_id] = []
-                            
-                            volume_history[obj_id].append({
-                                'frame': frame_idx,
-                                'volume_ml': volume_metrics['volume_ml'],
-                                'height_cm': volume_metrics['avg_height_cm'],
-                                'area_cm2': volume_metrics['surface_area_cm2']
-                            })
+                    # Fallback calibration if no plate detected (for single images or after detection)
+                    if not self.calibration['calibrated']:
+                        logger.warning("No plate detected - using default calibration")
+                        frame_width = frame.shape[1]
+                        # Assume 800px ≈ 50cm scene width as reasonable default
+                        self.calibration['pixels_per_cm'] = frame_width / 50.0
+                        self.calibration['calibrated'] = True
+                        logger.info(f"Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
+                    
+                    # Calculate volume (always, not just when calibration happens)
+                    volume_metrics = self._calculate_volume_metric3d(
+                        mask, depth_map_meters, box, label
+                    )
+                    
+                    # Store in history
+                    if obj_id not in volume_history:
+                        volume_history[obj_id] = []
+                    
+                    volume_history[obj_id].append({
+                        'frame': frame_idx,
+                        'volume_ml': volume_metrics['volume_ml'],
+                        'height_cm': volume_metrics['avg_height_cm'],
+                        'area_cm2': volume_metrics['surface_area_cm2']
+                    })
                             
                             # Update tracked object box with SAM2's refined box
                             mask_coords = np.argwhere(mask)
