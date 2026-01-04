@@ -317,15 +317,15 @@ class NutritionVideoPipeline:
                                     box, depth_map_meters, frame.shape[1]
                                 )
                                 self.calibration['calibrated'] = True
-
-                        # Fallback calibration if no plate detected after first detection pass
-                        if not self.calibration['calibrated'] and frame_idx >= self.config.DETECTION_INTERVAL:
-                            logger.warning("No plate detected - using default calibration")
-                            frame_width = frame.shape[1]
-                            # Assume 800px ≈ 50cm scene width as reasonable default
-                            self.calibration['pixels_per_cm'] = frame_width / 50.0
-                            self.calibration['calibrated'] = True
-                            logger.info(f"Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
+                            
+                            # Fallback calibration if no plate detected (for single images or after first frame)
+                            if not self.calibration['calibrated']:
+                                logger.warning("No plate detected - using default calibration")
+                                frame_width = frame.shape[1]
+                                # Assume 800px ≈ 50cm scene width as reasonable default
+                                self.calibration['pixels_per_cm'] = frame_width / 50.0
+                                self.calibration['calibrated'] = True
+                                logger.info(f"Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
                             
                             # Calculate volume
                             volume_metrics = self._calculate_volume_metric3d(
