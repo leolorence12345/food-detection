@@ -289,24 +289,39 @@ class NutritionVideoPipeline:
                         except Exception as e:
                             logger.warning(f"Could not add object ID{obj_id}: {e}")
             
-            # Propagate SAM2 masks
+            # Get SAM2 masks for current frame
             if tracked_objects:
                 video_segments = {}
-                logger.info(f"[{job_id}] Frame {frame_idx}: Propagating SAM2 masks for {len(tracked_objects)} objects")
+                relative_idx = frame_idx - current_window_start
+                logger.info(f"[{job_id}] Frame {frame_idx}: Getting SAM2 masks for {len(tracked_objects)} objects (relative_idx={relative_idx})")
+                
+                # For single images or when we need masks for the frame where objects were added,
+                # use infer_single_frame instead of propagate_in_video (which only propagates to future frames)
                 try:
-                    for out_frame_idx, out_obj_ids, out_mask_logits in video_predictor.propagate_in_video(inference_state):
-                        video_segments[out_frame_idx] = {
-                            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
-                            for i, out_obj_id in enumerate(out_obj_ids)
-                        }
-                    logger.info(f"[{job_id}] Frame {frame_idx}: SAM2 produced masks for {len(video_segments)} frames")
+                    # Get masks for the current frame directly
+                    out_frame_idx, out_obj_ids, out_mask_logits = video_predictor.infer_single_frame(
+                        inference_state, relative_idx
+                    )
+                    logger.info(f"[{job_id}] Frame {frame_idx}: SAM2 infer_single_frame returned frame_idx={out_frame_idx}, objects={out_obj_ids}")
+                    video_segments[out_frame_idx] = {
+                        out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                        for i, out_obj_id in enumerate(out_obj_ids)
+                    }
+                    
+                    # Also propagate to future frames if there are any
+                    for prop_frame_idx, prop_obj_ids, prop_mask_logits in video_predictor.propagate_in_video(inference_state):
+                        if prop_frame_idx not in video_segments:
+                            video_segments[prop_frame_idx] = {}
+                        for i, prop_obj_id in enumerate(prop_obj_ids):
+                            video_segments[prop_frame_idx][prop_obj_id] = (prop_mask_logits[i] > 0.0).cpu().numpy()
+                    
+                    logger.info(f"[{job_id}] Frame {frame_idx}: SAM2 produced masks for frames: {list(video_segments.keys())}")
                 except Exception as e:
-                    logger.error(f"[{job_id}] Frame {frame_idx}: SAM2 propagation failed: {e}", exc_info=True)
+                    logger.error(f"[{job_id}] Frame {frame_idx}: SAM2 inference failed: {e}", exc_info=True)
                     raise
                 
                 # Get current frame's masks
-                relative_idx = frame_idx - current_window_start
-                logger.info(f"[{job_id}] Frame {frame_idx}: relative_idx={relative_idx}, current_window_start={current_window_start}, video_segments keys={list(video_segments.keys())}")
+                logger.info(f"[{job_id}] Frame {frame_idx}: Looking for masks at relative_idx={relative_idx}, available keys={list(video_segments.keys())}")
                 if relative_idx in video_segments:
                     # Estimate depth
                     depth_map_meters = self._estimate_depth_metric3d(frame, metric3d_model)
