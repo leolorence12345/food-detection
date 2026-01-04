@@ -234,6 +234,8 @@ class NutritionVideoPipeline:
                     frame_pil, florence_processor, florence_model
                 )
                 
+                logger.info(f"[{job_id}] Frame {frame_idx}: Florence-2 detected {len(boxes)} objects: {labels}")
+                
                 if len(boxes) > 0:
                     # Match to existing objects
                     matched_mapping, unmatched_new = self._match_objects(
