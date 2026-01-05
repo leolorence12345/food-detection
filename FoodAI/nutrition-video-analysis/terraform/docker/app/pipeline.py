@@ -408,6 +408,52 @@ class NutritionVideoPipeline:
                         y_min, x_min = mask_coords.min(axis=0)
                         y_max, x_max = mask_coords.max(axis=0)
                         tracked_objects[obj_id]['box'] = [x_min, y_min, x_max, y_max]
+                
+                # Process objects that didn't get SAM2 masks (use bounding box as fallback)
+                if relative_idx in video_segments:
+                    objects_with_masks = set(video_segments[relative_idx].keys())
+                else:
+                    objects_with_masks = set()
+                
+                objects_without_masks = set(tracked_objects.keys()) - objects_with_masks
+                if objects_without_masks:
+                    logger.warning(f"[{job_id}] Frame {frame_idx}: Processing {len(objects_without_masks)} objects without SAM2 masks using bounding box fallback: {objects_without_masks}")
+                    depth_map_meters = self._estimate_depth_metric3d(frame, metric3d_model)
+                    
+                    for obj_id in objects_without_masks:
+                        box = tracked_objects[obj_id]['box']
+                        label = tracked_objects[obj_id]['label']
+                        
+                        # Create bounding box mask as fallback
+                        x1, y1, x2, y2 = [int(v) for v in box]
+                        mask = np.zeros((frame.shape[0], frame.shape[1]), dtype=bool)
+                        mask[y1:y2, x1:x2] = True
+                        
+                        # Calibrate if needed
+                        if not self.calibration['calibrated']:
+                            logger.warning(f"[{job_id}] No plate detected - using default calibration (frame_idx={frame_idx})")
+                            frame_width = frame.shape[1]
+                            self.calibration['pixels_per_cm'] = frame_width / 50.0
+                            self.calibration['calibrated'] = True
+                            logger.info(f"[{job_id}] Default calibration: {self.calibration['pixels_per_cm']:.2f} px/cm")
+                        
+                        # Calculate volume using bounding box mask
+                        logger.info(f"[{job_id}] Frame {frame_idx}: Calculating volume for object {obj_id} ({label}) using bounding box fallback")
+                        volume_metrics = self._calculate_volume_metric3d(
+                            mask, depth_map_meters, box, label
+                        )
+                        logger.info(f"[{job_id}] Frame {frame_idx}: Object {obj_id} volume={volume_metrics['volume_ml']:.2f}ml, height={volume_metrics['avg_height_cm']:.2f}cm")
+                        
+                        # Store in history
+                        if obj_id not in volume_history:
+                            volume_history[obj_id] = []
+                        
+                        volume_history[obj_id].append({
+                            'frame': frame_idx,
+                            'volume_ml': volume_metrics['volume_ml'],
+                            'height_cm': volume_metrics['avg_height_cm'],
+                            'area_cm2': volume_metrics['surface_area_cm2']
+                        })
                 else:
                     logger.warning(f"[{job_id}] Frame {frame_idx}: relative_idx {relative_idx} not in video_segments! Available: {list(video_segments.keys())}")
         
