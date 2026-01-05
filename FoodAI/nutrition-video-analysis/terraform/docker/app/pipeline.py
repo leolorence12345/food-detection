@@ -91,6 +91,7 @@ class NutritionVideoPipeline:
                 'timestamp': datetime.utcnow().isoformat(),
                 'num_frames_processed': 1,
                 'calibration': self.calibration,
+                'florence_detections': self.florence_detections,  # Store Florence-2 detection results
                 'tracking': tracking_results,
                 'nutrition': nutrition_results,
                 'status': 'completed'
