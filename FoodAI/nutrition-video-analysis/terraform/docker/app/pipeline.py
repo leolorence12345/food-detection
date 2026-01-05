@@ -20,30 +20,33 @@ class NutritionVideoPipeline:
     Complete pipeline for video-based nutrition analysis
     """
     
-    def __init__(self, model_manager, config):
-        """
-        Initialize pipeline with models and configuration
-        
-        Args:
-            model_manager: ModelManager instance with loaded models
-            config: Settings instance with configuration
-        """
-        self.models = model_manager
-        self.config = config
-        self.device = config.DEVICE
-        
-        # Task prompts for Florence-2
-        self.TASK_PROMPTS = {
-            "caption": "<CAPTION>",
-            "detailed_caption": "<DETAILED_CAPTION>",
-            "more_detailed_caption": "<MORE_DETAILED_CAPTION>"
-        }
-        
-        # Calibration state
-        self.calibration = {
-            'pixels_per_cm': None,
-            'calibrated': False
-        }
+        def __init__(self, model_manager, config):
+            """
+            Initialize pipeline with models and configuration
+            
+            Args:
+                model_manager: ModelManager instance with loaded models
+                config: Settings instance with configuration
+            """
+            self.models = model_manager
+            self.config = config
+            self.device = config.DEVICE
+            
+            # Task prompts for Florence-2
+            self.TASK_PROMPTS = {
+                "caption": "<CAPTION>",
+                "detailed_caption": "<DETAILED_CAPTION>",
+                "more_detailed_caption": "<MORE_DETAILED_CAPTION>"
+            }
+            
+            # Calibration state
+            self.calibration = {
+                'pixels_per_cm': None,
+                'calibrated': False
+            }
+            
+            # Store Florence-2 detection results for debugging
+            self.florence_detections = []
     
     def process_image(self, image_path: Path, job_id: str) -> Dict:
         """
@@ -127,18 +130,19 @@ class NutritionVideoPipeline:
             # Step 3: Analyze nutrition
             nutrition_results = self._analyze_nutrition(tracking_results, job_id)
 
-            # Step 4: Compile complete results
-            final_results = {
-                'job_id': job_id,
-                'media_name': video_path.name,
-                'media_type': 'video',
-                'timestamp': datetime.utcnow().isoformat(),
-                'num_frames_processed': len(frames),
-                'calibration': self.calibration,
-                'tracking': tracking_results,
-                'nutrition': nutrition_results,
-                'status': 'completed'
-            }
+                # Step 4: Compile complete results
+                final_results = {
+                    'job_id': job_id,
+                    'media_name': video_path.name,
+                    'media_type': 'video',
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'num_frames_processed': len(frames),
+                    'calibration': self.calibration,
+                    'florence_detections': self.florence_detections,  # Store Florence-2 detection results
+                    'tracking': tracking_results,
+                    'nutrition': nutrition_results,
+                    'status': 'completed'
+                }
 
             logger.info(f"[{job_id}] ✓ Processing completed successfully")
             return final_results
@@ -235,6 +239,22 @@ class NutritionVideoPipeline:
                 )
                 
                 logger.info(f"[{job_id}] Frame {frame_idx}: Florence-2 detected {len(boxes)} objects: {labels}")
+                
+                # Store Florence-2 detection results for debugging
+                detection_info = {
+                    'frame_idx': frame_idx,
+                    'caption': caption,
+                    'detections': [
+                        {
+                            'label': label,
+                            'box': box.tolist() if hasattr(box, 'tolist') else list(box),
+                            'box_area': float((box[2] - box[0]) * (box[3] - box[1]))
+                        }
+                        for box, label in zip(boxes, labels)
+                    ],
+                    'total_detected': len(boxes)
+                }
+                self.florence_detections.append(detection_info)
                 
                 if len(boxes) > 0:
                     # Match to existing objects
