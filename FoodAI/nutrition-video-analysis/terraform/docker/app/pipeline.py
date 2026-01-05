@@ -317,7 +317,8 @@ class NutritionVideoPipeline:
                         y1 = max(0, min(y1, h-1))
                         x2 = max(x1+1, min(x2, w))
                         y2 = max(y1+1, min(y2, h))
-                        box_sam = np.array([[x1, y1, x2, y2]])
+                        # SAM2 expects box in format [[x1, y1], [x2, y2]] not [x1, y1, x2, y2]
+                        box_sam = np.array([[[x1, y1], [x2, y2]]])
                         
                         logger.info(f"[{job_id}] Frame {frame_idx}: Adding object ID{obj_id} ({label}) to SAM2 with box: {box_sam[0]}")
                         try:
