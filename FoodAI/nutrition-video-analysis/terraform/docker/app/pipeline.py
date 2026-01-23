@@ -297,11 +297,15 @@ class NutritionVideoPipeline:
                     
                     logger.info(f"[{job_id}] Frame {frame_idx}: Florence-2 detected {len(boxes)} objects: {labels}")
                     
-                    # Use Gemini to filter out non-food items
+                    # Use Gemini to format VQA answer and filter non-food items in one call (optimized)
                     if self.config.GEMINI_API_KEY and len(labels) > 0:
-                        filtered_boxes, filtered_labels = self._filter_non_food_with_gemini(boxes, labels, job_id, frame_idx)
+                        filtered_boxes, filtered_labels, formatted_answer = self._format_and_filter_with_gemini(
+                            boxes, labels, detected_caption, job_id, frame_idx
+                        )
                         boxes = np.array(filtered_boxes) if filtered_boxes else np.array([])
                         labels = filtered_labels
+                        if formatted_answer:
+                            detected_caption = formatted_answer  # Update caption with formatted version
                         logger.info(f"[{job_id}] Frame {frame_idx}: After Gemini filtering: {len(boxes)} food items: {labels}")
                     
                     # Store Florence-2 detection results for debugging
@@ -486,11 +490,16 @@ class NutritionVideoPipeline:
                         
                         # Calculate volumes for objects in the detection frame
                         if relative_idx in video_segments:
+                            # Collect masks for saving/uploading
+                            masks_dict = {}
                             for obj_id in video_segments[relative_idx]:
                                 if obj_id in tracked_objects:
                                     mask = video_segments[relative_idx][obj_id][0]
                                     box = tracked_objects[obj_id]['box']
                                     label = tracked_objects[obj_id]['label']
+                                    
+                                    # Store mask for saving
+                                    masks_dict[obj_id] = mask
                                     
                                     volume_metrics = self._calculate_volume_metric3d(mask, depth_map_meters, box, label)
                                     
@@ -500,9 +509,14 @@ class NutritionVideoPipeline:
                                         'frame': frame_idx,
                                         'volume_ml': volume_metrics['volume_ml'],
                                         'height_cm': volume_metrics['avg_height_cm'],
-                                        'area_cm2': volume_metrics['surface_area_cm2']
+                                        'area_cm2': volume_metrics['surface_area_cm2'],
+                                        'diameter_cm': volume_metrics.get('diameter_cm', 0.0)  # Store for batch validation
                                     })
                                     logger.info(f"[{job_id}] Frame {frame_idx}: ID{obj_id} ({label}) volume={volume_metrics['volume_ml']:.1f}ml")
+                            
+                            # Save and upload segmented images to S3
+                            if masks_dict:
+                                self._save_segmentation_masks(frame, masks_dict, tracked_objects, frame_idx, job_id)
             
             # No additional processing needed - volumes calculated at each detection frame
             
@@ -531,6 +545,8 @@ class NutritionVideoPipeline:
         # Compile results for ALL objects that have volume history (not just current tracked_objects)
         # This ensures we don't lose objects from previous SAM2 windows
         objects_with_volume = set()
+        items_for_validation = []  # Collect items with calculated volumes for batch validation
+        
         for obj_id in volume_history.keys():
             history = volume_history[obj_id]
             if len(history) > 0:
@@ -546,47 +562,99 @@ class NutritionVideoPipeline:
                 volumes = [h['volume_ml'] for h in history]
                 heights = [h['height_cm'] for h in history]
                 areas = [h['area_cm2'] for h in history]
+                diameters = [h.get('diameter_cm', 0) for h in history]  # Get stored diameter
                 
-                results['objects'][f"ID{obj_id}_{label}"] = {
+                max_volume = float(max(volumes))
+                max_height = float(max(heights))
+                max_area = float(max(areas))
+                max_diameter = float(max(diameters)) if diameters else 0.0
+                
+                # Store for batch validation
+                items_for_validation.append({
+                    'obj_id': obj_id,
                     'label': label,
-                    'statistics': {
-                        'max_volume_ml': float(max(volumes)),
-                        'median_volume_ml': float(np.median(volumes)),
-                        'mean_volume_ml': float(np.mean(volumes)),
-                        'max_height_cm': float(max(heights)),
-                        'max_area_cm2': float(max(areas)),
-                        'num_frames': len(history)
-                    }
-                }
+                    'calculated_volume_ml': max_volume,
+                    'height_cm': max_height,
+                    'area_cm2': max_area,
+                    'diameter_cm': max_diameter,
+                    'volumes': volumes,
+                    'heights': heights,
+                    'areas': areas
+                })
+                
                 objects_with_volume.add(obj_id)
         
         # Include ALL tracked objects, even if they don't have volume calculations
-        # This ensures items detected but without SAM2 masks/volumes are still included
+        # Collect untracked items for batch estimation
+        untracked_items = []
         for obj_id, obj_data in tracked_objects.items():
             if obj_id not in objects_with_volume:
                 label = obj_data['label']
                 box = obj_data['box']
                 box_area = (box[2] - box[0]) * (box[3] - box[1])
-                
-                # Estimate volume from bounding box area (rough approximation)
-                # Assume average height of 2cm for items without depth data
-                estimated_height_cm = 2.0
-                estimated_volume_ml = (box_area / (self.calibration['pixels_per_cm'] ** 2)) * estimated_height_cm
-                
-                logger.warning(f"[{job_id}] Object ID{obj_id} ('{label}') detected but no volume calculated - using estimated volume {estimated_volume_ml:.1f}ml")
-                
-                results['objects'][f"ID{obj_id}_{label}"] = {
+                area_cm2 = box_area / (self.calibration['pixels_per_cm'] ** 2)
+                untracked_items.append({
+                    'obj_id': obj_id,
                     'label': label,
-                    'statistics': {
-                        'max_volume_ml': float(estimated_volume_ml),
-                        'median_volume_ml': float(estimated_volume_ml),
-                        'mean_volume_ml': float(estimated_volume_ml),
-                        'max_height_cm': float(estimated_height_cm),
-                        'max_area_cm2': float(box_area / (self.calibration['pixels_per_cm'] ** 2)),
-                        'num_frames': 1,
-                        'estimated': True  # Flag to indicate this is an estimate
-                    }
+                    'area_cm2': area_cm2,
+                    'box': box
+                })
+        
+        # Batch process: Validate calculated volumes + Estimate untracked volumes in ONE Gemini call
+        if self.config.GEMINI_API_KEY and (items_for_validation or untracked_items):
+            validated_and_estimated = self._batch_validate_and_estimate_volumes_with_gemini(
+                items_for_validation, untracked_items, job_id
+            )
+            validated_volumes = validated_and_estimated.get('validated', {})
+            estimated_volumes = validated_and_estimated.get('estimated', {})
+        else:
+            # Fallback: no validation, simple estimation
+            validated_volumes = {item['obj_id']: item['calculated_volume_ml'] for item in items_for_validation}
+            estimated_volumes = {item['obj_id']: item['area_cm2'] * 2.0 for item in untracked_items}
+        
+        # Add items with validated volumes to results
+        for item in items_for_validation:
+            obj_id = item['obj_id']
+            label = item['label']
+            validated_volume = validated_volumes.get(obj_id, item['calculated_volume_ml'])
+            
+            if validated_volume != item['calculated_volume_ml']:
+                logger.info(f"[{job_id}] ✓ Gemini adjusted volume for '{label}': {item['calculated_volume_ml']:.1f}ml → {validated_volume:.1f}ml")
+            
+            results['objects'][f"ID{obj_id}_{label}"] = {
+                'label': label,
+                'statistics': {
+                    'max_volume_ml': float(validated_volume),
+                    'median_volume_ml': float(np.median(item['volumes'])),
+                    'mean_volume_ml': float(np.mean(item['volumes'])),
+                    'max_height_cm': float(max(item['heights'])),
+                    'max_area_cm2': float(max(item['areas'])),
+                    'num_frames': len(item['volumes'])
                 }
+            }
+        
+        # Add untracked items with estimated volumes to results
+        for item in untracked_items:
+            obj_id = item['obj_id']
+            label = item['label']
+            area_cm2 = item['area_cm2']
+            estimated_volume_ml = estimated_volumes.get(obj_id, area_cm2 * 2.0)
+            
+            logger.info(f"[{job_id}] Object ID{obj_id} ('{label}') detected but no volume calculated - using estimated volume {estimated_volume_ml:.1f}ml")
+            
+            results['objects'][f"ID{obj_id}_{label}"] = {
+                'label': label,
+                'statistics': {
+                    'max_volume_ml': float(estimated_volume_ml),
+                    'median_volume_ml': float(estimated_volume_ml),
+                    'mean_volume_ml': float(estimated_volume_ml),
+                    'max_height_cm': 2.0,  # Default estimate
+                    'max_area_cm2': float(area_cm2),
+                    'num_frames': 1,
+                    'estimated': True,  # Flag to indicate this is an estimate
+                    'estimation_method': 'gemini' if self.config.GEMINI_API_KEY else 'fallback'
+                }
+            }
         
         logger.info(f"[{job_id}] Tracked {len(results['objects'])} objects across all frames ({len(objects_with_volume)} with calculated volumes, {len(results['objects']) - len(objects_with_volume)} with estimated volumes)")
         results['total_objects'] = len(results['objects'])
@@ -1966,23 +2034,14 @@ class NutritionVideoPipeline:
             logger.warning(f"⚠️ Volume capped from {old_volume:.1f}ml to {max_reasonable_volume:.1f}ml for '{label}' "
                           f"(diameter: {estimated_diameter_cm:.1f}cm, area: {surface_area_cm2:.1f}cm², height: {height_cm:.2f}cm)")
         
-        # Gemini validation: Ask Gemini if this volume seems reasonable
-        if self.config.GEMINI_API_KEY:
-            validated_volume = self._validate_volume_with_gemini(
-                food_name=label,
-                calculated_volume_ml=volume_ml,
-                height_cm=height_cm,
-                area_cm2=surface_area_cm2,
-                diameter_cm=estimated_diameter_cm
-            )
-            if validated_volume is not None and validated_volume != volume_ml:
-                logger.info(f"✓ Gemini adjusted volume for '{label}': {volume_ml:.1f}ml → {validated_volume:.1f}ml")
-                volume_ml = validated_volume
+        # Note: Volume validation is now batched with estimation at the end (optimization)
+        # We return the calculated volume as-is, validation happens later in batch
         
         return {
             'volume_ml': float(volume_ml),
             'avg_height_cm': float(height_cm),
-            'surface_area_cm2': float(surface_area_cm2)
+            'surface_area_cm2': float(surface_area_cm2),
+            'diameter_cm': float(estimated_diameter_cm)  # Store for later batch validation
         }
     
     def _validate_volume_with_gemini(self, food_name, calculated_volume_ml, height_cm, area_cm2, diameter_cm):
@@ -2064,11 +2123,345 @@ Examples:
             logger.warning(f"Gemini volume validation failed: {e}")
             return calculated_volume_ml
     
-    def _filter_non_food_with_gemini(self, boxes, labels, job_id, frame_idx):
-        """Use Gemini to filter out non-food items from detected objects"""
+    def _batch_validate_and_estimate_volumes_with_gemini(self, items_for_validation: list, untracked_items: list, job_id: str) -> dict:
+        """
+        Combined: Validate calculated volumes AND estimate untracked volumes in ONE Gemini call.
+        Optimizes from N+M calls to 1 call.
+        
+        Args:
+            items_for_validation: List of items with calculated volumes that need validation
+            untracked_items: List of items without volumes that need estimation
+            job_id: Job ID for logging
+            
+        Returns:
+            Dict with 'validated' (obj_id -> validated_volume) and 'estimated' (obj_id -> estimated_volume)
+        """
+        if not self.config.GEMINI_API_KEY:
+            # Fallback
+            validated = {item['obj_id']: item['calculated_volume_ml'] for item in items_for_validation}
+            estimated = {item['obj_id']: item['area_cm2'] * 2.0 for item in untracked_items}
+            return {'validated': validated, 'estimated': estimated}
+        
+        if not items_for_validation and not untracked_items:
+            return {'validated': {}, 'estimated': {}}
+        
         try:
             import google.generativeai as genai
             import time
+            import json
+            time.sleep(0.2)  # Rate limiting
+            genai.configure(api_key=self.config.GEMINI_API_KEY)
+            gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            
+            # Build prompt with both validation and estimation items
+            validation_list = []
+            for item in items_for_validation:
+                validation_list.append(
+                    f"- {item['label']}: calculated {item['calculated_volume_ml']:.1f}ml "
+                    f"(height: {item['height_cm']:.2f}cm, area: {item['area_cm2']:.1f}cm², diameter: {item['diameter_cm']:.1f}cm)"
+                )
+            
+            estimation_list = []
+            for item in untracked_items:
+                estimation_list.append(f"- {item['label']}: visible area {item['area_cm2']:.1f} cm²")
+            
+            prompt = f"""You are a food portion estimation expert. Perform TWO tasks:
+
+1. **VALIDATE** calculated volumes - check if they're reasonable for typical servings
+2. **ESTIMATE** volumes for items without calculations - provide typical serving volumes
+
+Items to VALIDATE (calculated volumes):
+{chr(10).join(validation_list) if validation_list else "None"}
+
+Items to ESTIMATE (no volume calculated):
+{chr(10).join(estimation_list) if estimation_list else "None"}
+
+Common serving sizes:
+- Ribs: 200-400ml (2-4 ribs)
+- Burger: 150-250ml (single burger)
+- Fries: 150-300ml (side serving)
+- Pasta: 300-500ml (main dish)
+- Pizza slice: 200-300ml
+- Chicken nuggets: 100-200ml (4-6 nuggets)
+- Vegetables/sides: 100-200ml
+- Beans: 100-200ml (side serving)
+- Gravy: 50-150ml (sauce serving)
+- Mashed potatoes: 150-250ml (side serving)
+- Drinks: 250-500ml
+- Sauces/condiments: 30-100ml
+
+For VALIDATION: If volume is unreasonable (too large/small, measurement failure), suggest corrected volume.
+For ESTIMATION: Provide typical serving volume based on food type and visible area.
+
+Respond ONLY with JSON:
+{{
+  "validated": [
+    {{"food": "food_name", "validated_volume_ml": number, "reason": "explanation"}},
+    ...
+  ],
+  "estimated": [
+    {{"food": "food_name", "estimated_volume_ml": number, "reason": "explanation"}},
+    ...
+  ]
+}}
+
+If volume is reasonable, use the calculated volume. If no validation needed, omit from validated array.
+Example:
+{{
+  "validated": [{{"food": "Ribs", "validated_volume_ml": 300, "reason": "Adjusted from 1000ml (too large)"}}],
+  "estimated": [{{"food": "Beans", "estimated_volume_ml": 150, "reason": "Typical side serving"}}]
+}}"""
+
+            response = gemini_model.generate_content(prompt)
+            response_text = response.text.strip()
+            
+            # Extract JSON
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].split('```')[0].strip()
+            
+            result = json.loads(response_text)
+            
+            # Map validated volumes
+            validated_map = {}
+            for item in items_for_validation:
+                label = item['label']
+                calculated_volume = item['calculated_volume_ml']
+                
+                # Find matching validation result
+                matched = False
+                for validated_item in result.get('validated', []):
+                    if validated_item.get('food', '').lower() == label.lower():
+                        validated_volume = float(validated_item.get('validated_volume_ml', calculated_volume))
+                        validated_map[item['obj_id']] = validated_volume
+                        if validated_volume != calculated_volume:
+                            logger.info(f"[{job_id}] Gemini validated '{label}': {calculated_volume:.1f}ml → {validated_volume:.1f}ml - {validated_item.get('reason', '')}")
+                        matched = True
+                        break
+                
+                if not matched:
+                    # No validation needed, use calculated volume
+                    validated_map[item['obj_id']] = calculated_volume
+            
+            # Map estimated volumes
+            estimated_map = {}
+            for item in untracked_items:
+                label = item['label']
+                
+                # Find matching estimation result
+                matched = False
+                for estimated_item in result.get('estimated', []):
+                    if estimated_item.get('food', '').lower() == label.lower():
+                        estimated_volume = float(estimated_item.get('estimated_volume_ml', 0))
+                        estimated_map[item['obj_id']] = estimated_volume
+                        logger.info(f"[{job_id}] Gemini estimated '{label}': {estimated_volume:.1f}ml - {estimated_item.get('reason', '')}")
+                        matched = True
+                        break
+                
+                if not matched:
+                    # Fallback if no match
+                    estimated_map[item['obj_id']] = item['area_cm2'] * 2.0
+                    logger.warning(f"[{job_id}] No Gemini match for '{label}', using fallback")
+            
+            return {'validated': validated_map, 'estimated': estimated_map}
+            
+        except Exception as e:
+            logger.warning(f"[{job_id}] Batch validate+estimate failed: {e}, using fallback")
+            validated = {item['obj_id']: item['calculated_volume_ml'] for item in items_for_validation}
+            estimated = {item['obj_id']: item['area_cm2'] * 2.0 for item in untracked_items}
+            return {'validated': validated, 'estimated': estimated}
+    
+    def _batch_estimate_volumes_with_gemini(self, untracked_items: list, job_id: str) -> dict:
+        """
+        Batch estimate volumes for multiple untracked items in one Gemini call.
+        Optimizes from N calls to 1 call.
+        
+        Args:
+            untracked_items: List of dicts with 'obj_id', 'label', 'area_cm2'
+            job_id: Job ID for logging
+            
+        Returns:
+            Dict mapping obj_id -> estimated_volume_ml
+        """
+        if not self.config.GEMINI_API_KEY or not untracked_items:
+            # Fallback: simple estimation
+            return {item['obj_id']: item['area_cm2'] * 2.0 for item in untracked_items}
+        
+        try:
+            import google.generativeai as genai
+            import time
+            import json
+            time.sleep(0.2)  # Rate limiting
+            genai.configure(api_key=self.config.GEMINI_API_KEY)
+            gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            
+            # Build prompt with all items
+            items_list = []
+            for item in untracked_items:
+                items_list.append(f"- {item['label']}: visible area {item['area_cm2']:.1f} cm²")
+            
+            prompt = f"""You are a food portion estimation expert. Estimate typical serving volumes for these food items.
+
+Food Items:
+{chr(10).join(items_list)}
+
+Task: Estimate reasonable TYPICAL RESTAURANT/HOME SERVING volumes in milliliters (ml) for each food.
+
+Common portion ranges:
+- Ribs: 200-400ml (2-4 ribs)
+- Burger: 150-250ml (single burger)
+- Fries: 150-300ml (side serving)
+- Pasta: 300-500ml (main dish)
+- Pizza slice: 200-300ml
+- Chicken nuggets: 100-200ml (4-6 nuggets)
+- Vegetables/sides: 100-200ml
+- Beans: 100-200ml (side serving)
+- Gravy: 50-150ml (sauce serving)
+- Mashed potatoes: 150-250ml (side serving)
+- Drinks: 250-500ml
+- Sauces/condiments: 30-100ml
+
+Respond ONLY with JSON array:
+[
+  {{"food": "food_name", "estimated_volume_ml": number, "reason": "brief explanation"}},
+  ...
+]
+
+Example:
+[{{"food": "Beans", "estimated_volume_ml": 150, "reason": "Typical side serving"}}, {{"food": "Gravy", "estimated_volume_ml": 100, "reason": "Standard gravy portion"}}]"""
+
+            response = gemini_model.generate_content(prompt)
+            response_text = response.text.strip()
+            
+            # Extract JSON
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].split('```')[0].strip()
+            
+            results = json.loads(response_text)
+            
+            # Map results to obj_ids
+            volume_map = {}
+            for item in untracked_items:
+                label = item['label']
+                # Find matching result
+                matched = False
+                for result in results:
+                    if result.get('food', '').lower() == label.lower():
+                        volume_map[item['obj_id']] = float(result.get('estimated_volume_ml', 0))
+                        logger.info(f"[{job_id}] Gemini volume estimate for '{label}': {result.get('estimated_volume_ml')}ml - {result.get('reason', '')}")
+                        matched = True
+                        break
+                
+                if not matched:
+                    # Fallback if no match
+                    volume_map[item['obj_id']] = item['area_cm2'] * 2.0
+                    logger.warning(f"[{job_id}] No Gemini match for '{label}', using fallback")
+            
+            return volume_map
+            
+        except Exception as e:
+            logger.warning(f"[{job_id}] Batch volume estimation failed: {e}, using fallback")
+            return {item['obj_id']: item['area_cm2'] * 2.0 for item in untracked_items}
+    
+    def _estimate_volume_with_gemini(self, food_name: str, area_cm2: float, job_id: str) -> float:
+        """
+        Use Gemini to estimate typical serving volume for a food item when volume calculation failed.
+        Then this volume will be used with RAG for nutrition analysis.
+        
+        Args:
+            food_name: Name of the food item
+            area_cm2: Surface area in cm² (from bounding box)
+            job_id: Job ID for logging
+            
+        Returns:
+            Estimated volume in ml
+        """
+        if not self.config.GEMINI_API_KEY:
+            # Fallback: simple estimation from area
+            estimated_height_cm = 2.0
+            return area_cm2 * estimated_height_cm
+        
+        try:
+            import google.generativeai as genai
+            import time
+            import json
+            time.sleep(0.2)  # Rate limiting
+            genai.configure(api_key=self.config.GEMINI_API_KEY)
+            gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            
+            prompt = f"""You are a food portion estimation expert. Estimate the typical serving volume for this food item.
+
+Food: {food_name}
+Visible Surface Area: {area_cm2:.1f} cm²
+
+Task: Estimate a reasonable TYPICAL RESTAURANT/HOME SERVING volume in milliliters (ml) for this food.
+
+Consider:
+- Typical serving sizes for this food type
+- The visible area suggests approximate portion size
+- Common portion ranges:
+  * Ribs: 200-400ml (2-4 ribs)
+  * Burger: 150-250ml (single burger)
+  * Fries: 150-300ml (side serving)
+  * Pasta: 300-500ml (main dish)
+  * Pizza slice: 200-300ml
+  * Chicken nuggets: 100-200ml (4-6 nuggets)
+  * Vegetables/sides: 100-200ml
+  * Beans: 100-200ml (side serving)
+  * Gravy: 50-150ml (sauce serving)
+  * Mashed potatoes: 150-250ml (side serving)
+  * Drinks: 250-500ml
+  * Sauces/condiments: 30-100ml
+
+Respond ONLY with a JSON object:
+{{
+  "estimated_volume_ml": number,
+  "reason": "brief explanation of the estimate"
+}}
+
+Example:
+{{"estimated_volume_ml": 250, "reason": "Typical side serving of mashed potatoes"}}
+{{"estimated_volume_ml": 150, "reason": "Standard serving of beans"}}
+{{"estimated_volume_ml": 100, "reason": "Typical gravy portion"}}"""
+
+            response = gemini_model.generate_content(prompt)
+            response_text = response.text.strip()
+            
+            # Extract JSON from response
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].split('```')[0].strip()
+            
+            result = json.loads(response_text)
+            estimated_volume = result.get('estimated_volume_ml', 0)
+            reason = result.get('reason', 'No reason provided')
+            
+            if estimated_volume > 0:
+                logger.info(f"[{job_id}] Gemini volume estimate for '{food_name}': {estimated_volume:.1f}ml - {reason}")
+                return float(estimated_volume)
+            else:
+                # Fallback if Gemini returns invalid value
+                logger.warning(f"[{job_id}] Gemini returned invalid volume for '{food_name}', using fallback")
+                return area_cm2 * 2.0  # Fallback: area * 2cm height
+            
+        except Exception as e:
+            logger.warning(f"[{job_id}] Gemini volume estimation failed for '{food_name}': {e}, using fallback")
+            # Fallback: simple estimation from area
+            return area_cm2 * 2.0  # area * 2cm height
+    
+    def _format_and_filter_with_gemini(self, boxes, labels, vqa_answer, job_id, frame_idx):
+        """
+        Combined: Format VQA answer and filter non-food items in one Gemini call.
+        Optimizes from 2 calls to 1 call per detection frame.
+        """
+        try:
+            import google.generativeai as genai
+            import time
+            import json
             time.sleep(0.2)  # Rate limiting
             genai.configure(api_key=self.config.GEMINI_API_KEY)
             gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
@@ -2076,49 +2469,61 @@ Examples:
             # Create list of detected items
             items_list = ", ".join([f'"{label}"' for label in labels])
             
-            prompt = f"""You are analyzing detected objects from a food image. Some detections might be errors (e.g., text overlays, UI elements, non-food objects).
+            prompt = f"""You are analyzing detected objects from a food image. Perform two tasks:
 
-Detected items: {items_list}
+1. Format the VQA answer: Extract only food item names from "{vqa_answer}", list them separated by commas.
+2. Filter detected items: From the detected items with bounding boxes, identify which are ACTUAL FOOD or BEVERAGES.
 
-Identify which items are ACTUAL FOOD or BEVERAGES that should be included in nutrition analysis.
+VQA Answer: {vqa_answer}
+Detected items with boxes: {items_list}
 
 Rules:
 - Include: Any food, ingredients, beverages, condiments
-- Exclude: Text overlays (like "VQA", "question", "instruction"), UI elements, non-edible objects
+- Exclude: Text overlays (like "VQA", "question", "instruction"), UI elements, non-edible objects, utensils, plates, tables
 
-Respond ONLY with a JSON array of the food items to KEEP:
-{{"food_items": ["item1", "item2", ...]}}
+Respond ONLY with JSON:
+{{
+  "formatted_foods": "comma-separated list of food names from VQA",
+  "food_items_to_keep": ["item1", "item2", ...]
+}}
 
-If none are food, respond: {{"food_items": []}}"""
+Example:
+{{"formatted_foods": "ribs, potatoes, beans, gravy, mashed potatoes", "food_items_to_keep": ["Ribs", "Potatoes", "Beans"]}}"""
 
             response = gemini_model.generate_content(prompt)
             response_text = response.text.strip()
             
             # Extract JSON
-            import json
             if '```json' in response_text:
                 response_text = response_text.split('```json')[1].split('```')[0].strip()
             elif '```' in response_text:
                 response_text = response_text.split('```')[1].split('```')[0].strip()
             
             result = json.loads(response_text)
-            food_items = [item.lower() for item in result.get('food_items', [])]
+            food_items_to_keep = [item.lower() for item in result.get('food_items_to_keep', [])]
+            formatted_foods = result.get('formatted_foods', '')
             
             # Filter boxes and labels based on Gemini's response
             filtered_boxes = []
             filtered_labels = []
             for box, label in zip(boxes, labels):
-                if label.lower() in food_items:
+                if label.lower() in food_items_to_keep:
                     filtered_boxes.append(box)
                     filtered_labels.append(label)
                 else:
                     logger.info(f"[{job_id}] Frame {frame_idx}: Gemini filtered out non-food: '{label}'")
             
-            return filtered_boxes, filtered_labels
+            # Return filtered boxes/labels and formatted foods (if needed)
+            return filtered_boxes, filtered_labels, formatted_foods
             
         except Exception as e:
-            logger.warning(f"[{job_id}] Frame {frame_idx}: Gemini filtering failed: {e}, keeping all detections")
-            return boxes.tolist() if hasattr(boxes, 'tolist') else boxes, labels
+            logger.warning(f"[{job_id}] Frame {frame_idx}: Gemini format+filter failed: {e}, keeping all detections")
+            return boxes.tolist() if hasattr(boxes, 'tolist') else boxes, labels, ""
+    
+    def _filter_non_food_with_gemini(self, boxes, labels, job_id, frame_idx):
+        """Use Gemini to filter out non-food items from detected objects (legacy, kept for compatibility)"""
+        filtered_boxes, filtered_labels, _ = self._format_and_filter_with_gemini(boxes, labels, "", job_id, frame_idx)
+        return filtered_boxes, filtered_labels
     
     def _deduplicate_objects_with_gemini(self, tracking_results, job_id):
         """Use Gemini to merge duplicate objects detected across different frames with different labels"""
@@ -2267,8 +2672,179 @@ If no duplicates, respond: {{"merge_groups": [], "keep_separate": ["ID1", "ID2",
             logger.warning(f"[{job_id}] Gemini deduplication failed: {e}", exc_info=True)
             return tracking_results
     
+    def _deduplicate_and_combine_with_gemini(self, tracking_results, job_id):
+        """
+        Combined: Deduplicate objects and combine similar items in one Gemini call.
+        Optimizes from 2 calls to 1 call.
+        """
+        if not self.config.GEMINI_API_KEY:
+            return tracking_results
+        
+        try:
+            import google.generativeai as genai
+            import time
+            import json
+            time.sleep(0.2)  # Rate limiting
+            genai.configure(api_key=self.config.GEMINI_API_KEY)
+            gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            
+            # Build list of all detected objects
+            skip_keywords = [
+                'question', 'vqa', 'text', 'plate', 'platter', 'fork', 'knife', 'spoon', 
+                'glass', 'cup', 'mug', 'bottle', 'table', 'bowl', 'container'
+            ]
+            
+            objects_summary = []
+            valid_obj_ids = []
+            
+            for obj_id, obj_data in tracking_results['objects'].items():
+                label = obj_data['label']
+                
+                # Filter out non-food items
+                if any(keyword in label.lower() for keyword in skip_keywords):
+                    continue
+                
+                volume = obj_data['statistics']['max_volume_ml']
+                area = obj_data['statistics']['max_area_cm2']
+                objects_summary.append(f"ID{obj_id}: {label} (volume: {volume:.1f}ml, area: {area:.1f}cm²)")
+                valid_obj_ids.append((obj_id, obj_data))
+            
+            if len(valid_obj_ids) <= 1:
+                return tracking_results
+            
+            prompt = f"""Analyze this list of detected food objects from a video and perform TWO tasks:
+
+1. **Deduplicate**: Identify objects that are the SAME physical item with different labels (e.g., "Ribs" + "Meat" = same)
+2. **Combine**: Identify small items that should be combined (garnishes, condiments, sauces)
+
+Detected Objects:
+{chr(10).join(objects_summary)}
+
+Rules:
+- **MERGE (Deduplicate)**: Same food type with different labels (e.g., "Ribs" and "Meat", "Mashed Potatoes" and "Potatoes")
+- **COMBINE**: Small garnishes (parsley, herbs), condiments, sauces that are sprinkled/spread
+- **KEEP SEPARATE**: Main dishes, distinct portions, different foods
+
+Respond ONLY with JSON:
+{{
+  "merge_groups": [
+    {{"ids": ["ID1", "ID3"], "reason": "Both are meat/ribs"}}
+  ],
+  "combine": ["item_name1", "item_name2"],
+  "keep_separate": ["ID4", "ID6"]
+}}
+
+If no duplicates/combinations, respond: {{"merge_groups": [], "combine": [], "keep_separate": ["ID1", "ID2", ...]}}"""
+
+            response = gemini_model.generate_content(prompt)
+            response_text = response.text.strip()
+            
+            # Extract JSON
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].split('```')[0].strip()
+            
+            decisions = json.loads(response_text)
+            
+            # Step 1: Apply merges (deduplication)
+            merge_groups = decisions.get('merge_groups', [])
+            merged_objects = {}
+            merged_ids = set()
+            
+            for group in merge_groups:
+                ids_to_merge = group['ids']
+                reason = group.get('reason', 'duplicate')
+                
+                numeric_ids = []
+                for id_str in ids_to_merge:
+                    try:
+                        numeric_id = int(id_str.replace('ID', ''))
+                        numeric_ids.append(numeric_id)
+                    except ValueError:
+                        continue
+                
+                if len(numeric_ids) < 2:
+                    continue
+                
+                objects_to_merge = [(obj_id, obj_data) for obj_id, obj_data in valid_obj_ids if obj_id in numeric_ids]
+                
+                if len(objects_to_merge) < 2:
+                    continue
+                
+                # Merge: keep the one with highest volume
+                objects_to_merge.sort(key=lambda x: x[1]['statistics']['max_volume_ml'], reverse=True)
+                primary_id, primary_data = objects_to_merge[0]
+                
+                total_volume = sum(obj[1]['statistics']['max_volume_ml'] for obj in objects_to_merge)
+                max_area = max(obj[1]['statistics']['max_area_cm2'] for obj in objects_to_merge)
+                max_height = max(obj[1]['statistics']['max_height_cm'] for obj in objects_to_merge)
+                labels = [obj[1]['label'] for obj in objects_to_merge]
+                best_label = max(labels, key=len)
+                
+                merged_data = primary_data.copy()
+                merged_data['label'] = best_label
+                merged_data['statistics']['max_volume_ml'] = total_volume
+                merged_data['statistics']['mean_volume_ml'] = total_volume
+                merged_data['statistics']['median_volume_ml'] = total_volume
+                merged_data['statistics']['max_area_cm2'] = max_area
+                merged_data['statistics']['max_height_cm'] = max_height
+                
+                merged_objects[primary_id] = merged_data
+                for obj_id, _ in objects_to_merge:
+                    merged_ids.add(obj_id)
+                
+                logger.info(f"[{job_id}] ✓ Merged [{', '.join(labels)}] → '{best_label}' ({total_volume:.1f}ml). Reason: {reason}")
+            
+            # Add non-merged objects
+            for obj_id, obj_data in valid_obj_ids:
+                if obj_id not in merged_ids:
+                    merged_objects[obj_id] = obj_data
+            
+            # Step 2: Apply combinations
+            combine_items = [item.lower() for item in decisions.get('combine', [])]
+            item_groups = {}
+            for obj_id, obj_data in merged_objects.items():
+                label = obj_data['label']
+                if label not in item_groups:
+                    item_groups[label] = []
+                item_groups[label].append({
+                    'obj_id': obj_id,
+                    'volume': obj_data['statistics']['max_volume_ml'],
+                    'data': obj_data
+                })
+            
+            final_objects = {}
+            combined_ids = set()
+            
+            for label, instances in item_groups.items():
+                if label.lower() in combine_items and len(instances) > 1:
+                    total_volume = sum(i['volume'] for i in instances)
+                    first_instance = instances[0]
+                    
+                    combined_id = first_instance['obj_id']
+                    final_objects[combined_id] = first_instance['data'].copy()
+                    final_objects[combined_id]['statistics']['max_volume_ml'] = total_volume
+                    final_objects[combined_id]['statistics']['mean_volume_ml'] = total_volume
+                    final_objects[combined_id]['statistics']['median_volume_ml'] = total_volume
+                    
+                    for i in instances:
+                        combined_ids.add(i['obj_id'])
+                    
+                    logger.info(f"[{job_id}] Combined {len(instances)} instances of '{label}' into 1 ({total_volume:.1f}ml total)")
+                else:
+                    for instance in instances:
+                        final_objects[instance['obj_id']] = instance['data']
+            
+            tracking_results['objects'] = final_objects
+            return tracking_results
+            
+        except Exception as e:
+            logger.warning(f"[{job_id}] Gemini deduplicate+combine failed: {e}", exc_info=True)
+            return tracking_results
+    
     def _combine_similar_items(self, tracking_results):
-        """Use Gemini to intelligently combine garnishes/small ingredients while keeping main dishes separate"""
+        """Use Gemini to intelligently combine garnishes/small ingredients while keeping main dishes separate (legacy, kept for compatibility)"""
         if not self.config.GEMINI_API_KEY:
             return tracking_results  # Skip if no Gemini key
         
@@ -2368,13 +2944,9 @@ Example:
         """Run nutrition analysis using RAG system"""
         logger.info(f"[{job_id}] Running nutrition analysis...")
         
-        # Step 1: Deduplicate objects detected across frames (e.g., "Ribs" + "Meat" = same item)
+        # Step 1 & 2: Deduplicate and combine items in one Gemini call (optimized)
         if self.config.GEMINI_API_KEY:
-            tracking_results = self._deduplicate_objects_with_gemini(tracking_results, job_id)
-        
-        # Step 2: Combine similar items (garnishes, small ingredients)
-        if self.config.GEMINI_API_KEY:
-            tracking_results = self._combine_similar_items(tracking_results)
+            tracking_results = self._deduplicate_and_combine_with_gemini(tracking_results, job_id)
         
         rag = self.models.rag
         
