@@ -16,6 +16,12 @@ export const initSentry = (dsn: string) => {
     return;
   }
 
+  // Temporarily disable Sentry in development to debug navigation issues
+  if (__DEV__) {
+    console.log('[Sentry] Disabled in development mode');
+    return;
+  }
+
   try {
     Sentry.init({
       dsn,
@@ -31,6 +37,15 @@ export const initSentry = (dsn: string) => {
       tracesSampleRate: __DEV__ ? 1.0 : 0.2,
       enableNativeFramesTracking: true,
       enableAutoInstrumentation: false, // Disabled to prevent console override
+      integrations: (defaultIntegrations) => {
+        // Filter out React Navigation integration that might be causing issues
+        return defaultIntegrations.filter((integration) => {
+          const name = integration.name;
+          // Disable React Navigation integration if it exists
+          return name !== 'ReactNavigationInstrumentation' &&
+                 name !== 'ReactNativeTracing';
+        });
+      },
       // Filter out sensitive data
       beforeSend(event, hint) {
         // Remove sensitive data from event

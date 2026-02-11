@@ -1,0 +1,194 @@
+{
+  "image_path": "/Users/leo/FoodProject/food-detection/gemini_test.jpeg",
+  "image_name": "gemini_test.jpeg",
+  "raw_response": "```json\n{\n  \"main_food_item\": \"Fruit Platter / Fruit Snack\",\n  \"cuisine_type\": \"Healthy Snack / Dessert (Universal)\",\n  \"cooking_method\": \"Raw / Fresh, sliced and arranged\",\n  \"visible_ingredients\": [\n    {\n      \"name\": \"Kiwi Slice\",\n      \"bounding_box\": [85, 195, 450, 405],\n      \"estimated_quantity\": \"1 slice\"\n    },\n    {\n      \"name\": \"Kiwi Slice\",\n      \"bounding_box\": [120, 310, 530, 535],\n      \"estimated_quantity\": \"1 slice\"\n    },\n    {\n      \"name\": \"Kiwi Slice\",\n      \"bounding_box\": [190, 430, 625, 680],\n      \"estimated_quantity\": \"1 slice\"\n    },\n    {\n      \"name\": \"Kiwi Slice\",\n      \"bounding_box\": [260, 520, 700, 775],\n      \"estimated_quantity\": \"1 slice\"\n    },\n    {\n      \"name\": \"Kiwi Slice\",\n      \"bounding_box\": [320, 180, 610, 385],\n      \"estimated_quantity\": \"1 slice\"\n    },\n    {\n      \"name\": \"Apple Rose (formed from apple slices)\",\n      \"bounding_box\": [450, 190, 990, 740],\n      \"estimated_quantity\": \"1 piece (made from approx. 1 medium apple)\"\n    },\n    {\n      \"name\": \"Date (Medjool)\",\n      \"bounding_box\": [360, 770, 630, 970],\n      \"estimated_quantity\": \"1 whole date\"\n    },\n    {\n      \"name\": \"Date (Medjool)\",\n      \"bounding_box\": [540, 750, 750, 960],\n      \"estimated_quantity\": \"1 whole date\"\n    },\n    {\n      \"name\": \"Date (Medjool)\",\n      \"bounding_box\": [710, 700, 900, 900],\n      \"estimated_quantity\": \"1 whole date\"\n    },\n    {\n      \"name\": \"Date (Medjool)\",\n      \"bounding_box\": [800, 650, 950, 830],\n      \"estimated_quantity\": \"1 whole date\"\n    },\n    {\n      \"name\": \"Wooden Toothpick\",\n      \"bounding_box\": [780, 200, 810, 280],\n      \"estimated_quantity\": \"1 toothpick (holding apple rose)\"\n    },\n    {\n      \"name\": \"Wooden Toothpick\",\n      \"bounding_box\": [590, 360, 610, 410],\n      \"estimated_quantity\": \"1 toothpick (partially visible, holding apple rose)\"\n    },\n    {\n      \"name\": \"White Ceramic Plate\",\n      \"bounding_box\": [1, 150, 1200, 1000],\n      \"estimated_quantity\": \"1 plate\"\n    },\n    {\n      \"name\": \"Wooden Table Surface\",\n      \"bounding_box\": [0, 0, 1200, 1600],\n      \"estimated_quantity\": \"background surface\"\n    },\n    {\n      \"name\": \"White Ceramic Mug/Cup\",\n      \"bounding_box\": [0, 0, 450, 160],\n      \"estimated_quantity\": \"partially visible\"\n    }\n  ],\n  \"ingredient_breakdown\": [\n    \"Kiwi fruit (Actinidia deliciosa)\",\n    \"Apple (Malus domestica)\",\n    \"Dates (Phoenix dactylifera), likely Medjool dates\",\n    \"Water (natural content of fruits)\",\n    \"Potential: Lemon juice or other citrus (to prevent apple browning, not visible but commonly used in such preparations)\"\n  ],\n  \"nutritional_info\": {\n    \"calories\": \"Approximately 420-470 kcal\",\n    \"macronutrients\": {\n      \"protein\": \"Approximately 3-5 g\",\n      \"carbs\": \"Approximately 110-125 g (predominantly natural sugars, ~90-100g sugars)\",\n      \"fats\": \"Approximately 1-2 g\"\n    },\n    \"micronutrients\": {\n      \"vitamins\": \"High in Vitamin C (Kiwi, Apple), Vitamin K (Kiwi), B vitamins (Dates), Vitamin A (Dates)\",\n      \"minerals\": \"Good source of Potassium (Dates, Kiwi, Apple), Magnesium (Dates), Copper (Dates), Iron (Dates), Manganese (Kiwi)\"\n    },\n    \"fiber_content\": \"Approximately 14-17 g\"\n  },\n  \"allergens\": [\n    \"Potential for specific fruit allergies (e.g., kiwi allergy, apple allergy - rare but possible)\"\n  ],\n  \"dietary_tags\": [\n    \"Vegetarian\",\n    \"Vegan\",\n    \"Gluten-Free\",\n    \"Dairy-Free\",\n    \"Nut-Free\",\n    \"Whole30 (excluding dates due to high sugar content, but whole foods otherwise)\",\n    \"Paleo (dates in moderation)\"\n  ],\n  \"additional_notes\": \"This dish presents a visually appealing and healthy snack or light meal. The apple is artfully arranged into a rose shape, indicating attention to presentation. The combination of kiwi, apple, and dates provides a good mix of flavors, textures, and nutritional benefits including natural sugars for energy, fiber for digestion, and various vitamins and minerals. It's a hydrating and naturally sweet option suitable for breakfast, a snack, or a light dessert.\"\n}\n```",
+  "parsed": true,
+  "main_food_item": "Fruit Platter / Fruit Snack",
+  "cuisine_type": "Healthy Snack / Dessert (Universal)",
+  "cooking_method": "Raw / Fresh, sliced and arranged",
+  "visible_ingredients": [
+    {
+      "name": "Kiwi Slice",
+      "bounding_box": [
+        85,
+        195,
+        450,
+        405
+      ],
+      "estimated_quantity": "1 slice"
+    },
+    {
+      "name": "Kiwi Slice",
+      "bounding_box": [
+        120,
+        310,
+        530,
+        535
+      ],
+      "estimated_quantity": "1 slice"
+    },
+    {
+      "name": "Kiwi Slice",
+      "bounding_box": [
+        190,
+        430,
+        625,
+        680
+      ],
+      "estimated_quantity": "1 slice"
+    },
+    {
+      "name": "Kiwi Slice",
+      "bounding_box": [
+        260,
+        520,
+        700,
+        775
+      ],
+      "estimated_quantity": "1 slice"
+    },
+    {
+      "name": "Kiwi Slice",
+      "bounding_box": [
+        320,
+        180,
+        610,
+        385
+      ],
+      "estimated_quantity": "1 slice"
+    },
+    {
+      "name": "Apple Rose (formed from apple slices)",
+      "bounding_box": [
+        450,
+        190,
+        990,
+        740
+      ],
+      "estimated_quantity": "1 piece (made from approx. 1 medium apple)"
+    },
+    {
+      "name": "Date (Medjool)",
+      "bounding_box": [
+        360,
+        770,
+        630,
+        970
+      ],
+      "estimated_quantity": "1 whole date"
+    },
+    {
+      "name": "Date (Medjool)",
+      "bounding_box": [
+        540,
+        750,
+        750,
+        960
+      ],
+      "estimated_quantity": "1 whole date"
+    },
+    {
+      "name": "Date (Medjool)",
+      "bounding_box": [
+        710,
+        700,
+        900,
+        900
+      ],
+      "estimated_quantity": "1 whole date"
+    },
+    {
+      "name": "Date (Medjool)",
+      "bounding_box": [
+        800,
+        650,
+        950,
+        830
+      ],
+      "estimated_quantity": "1 whole date"
+    },
+    {
+      "name": "Wooden Toothpick",
+      "bounding_box": [
+        780,
+        200,
+        810,
+        280
+      ],
+      "estimated_quantity": "1 toothpick (holding apple rose)"
+    },
+    {
+      "name": "Wooden Toothpick",
+      "bounding_box": [
+        590,
+        360,
+        610,
+        410
+      ],
+      "estimated_quantity": "1 toothpick (partially visible, holding apple rose)"
+    },
+    {
+      "name": "White Ceramic Plate",
+      "bounding_box": [
+        1,
+        150,
+        1200,
+        1000
+      ],
+      "estimated_quantity": "1 plate"
+    },
+    {
+      "name": "Wooden Table Surface",
+      "bounding_box": [
+        0,
+        0,
+        1200,
+        1600
+      ],
+      "estimated_quantity": "background surface"
+    },
+    {
+      "name": "White Ceramic Mug/Cup",
+      "bounding_box": [
+        0,
+        0,
+        450,
+        160
+      ],
+      "estimated_quantity": "partially visible"
+    }
+  ],
+  "ingredient_breakdown": [
+    "Kiwi fruit (Actinidia deliciosa)",
+    "Apple (Malus domestica)",
+    "Dates (Phoenix dactylifera), likely Medjool dates",
+    "Water (natural content of fruits)",
+    "Potential: Lemon juice or other citrus (to prevent apple browning, not visible but commonly used in such preparations)"
+  ],
+  "nutritional_info": {
+    "calories": "Approximately 420-470 kcal",
+    "macronutrients": {
+      "protein": "Approximately 3-5 g",
+      "carbs": "Approximately 110-125 g (predominantly natural sugars, ~90-100g sugars)",
+      "fats": "Approximately 1-2 g"
+    },
+    "micronutrients": {
+      "vitamins": "High in Vitamin C (Kiwi, Apple), Vitamin K (Kiwi), B vitamins (Dates), Vitamin A (Dates)",
+      "minerals": "Good source of Potassium (Dates, Kiwi, Apple), Magnesium (Dates), Copper (Dates), Iron (Dates), Manganese (Kiwi)"
+    },
+    "fiber_content": "Approximately 14-17 g"
+  },
+  "allergens": [
+    "Potential for specific fruit allergies (e.g., kiwi allergy, apple allergy - rare but possible)"
+  ],
+  "dietary_tags": [
+    "Vegetarian",
+    "Vegan",
+    "Gluten-Free",
+    "Dairy-Free",
+    "Nut-Free",
+    "Whole30 (excluding dates due to high sugar content, but whole foods otherwise)",
+    "Paleo (dates in moderation)"
+  ],
+  "additional_notes": "This dish presents a visually appealing and healthy snack or light meal. The apple is artfully arranged into a rose shape, indicating attention to presentation. The combination of kiwi, apple, and dates provides a good mix of flavors, textures, and nutritional benefits including natural sugars for energy, fiber for digestion, and various vitamins and minerals. It's a hydrating and naturally sweet option suitable for breakfast, a snack, or a light dessert."
+}

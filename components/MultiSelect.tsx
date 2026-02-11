@@ -16,6 +16,8 @@ interface MultiSelectProps {
   selectedArrayList: MultiSelectItem[];
   multiEnable: boolean;
   toHideSearchBox?: boolean;
+  /** When false, hides the "Select all" option in the dialog. Useful for single-choice fields. */
+  selectAllEnable?: boolean;
 }
 
 const styles = StyleSheet.create({
@@ -32,27 +34,29 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   selectedArrayList,
   multiEnable,
   toHideSearchBox,
+  selectAllEnable = true,
 }) => {
-  // For single-select mode, we use multiEnable=true to keep dialog open
-  // but handle selection to only allow one item
+  // Single-select: use multiEnable=true + limit=1. We patched the library so when limit=1,
+  // selecting another item replaces the selection (only one tick visible), dialog stays open.
+  const isSingleSelect = !multiEnable;
+  const paperMultiEnable = true;
+  const limit = isSingleSelect ? 1 : undefined;
+
+  // For single-select, ensure we only ever pass one item to the library (so when dialog opens, only one shows selected)
+  const normalizedSelectedList = isSingleSelect
+    ? (selectedArrayList.length > 0 ? [selectedArrayList[selectedArrayList.length - 1]] : [])
+    : selectedArrayList;
+
   const handleSelection = (selectionValue: { text: string; selectedList: MultiSelectItem[] }) => {
-    if (!multiEnable) {
-      // Single-select mode: only keep the last selected item
-      const lastSelected = selectionValue.selectedList[selectionValue.selectedList.length - 1];
-      if (lastSelected) {
-        onSelection({
-          text: lastSelected.value,
-          selectedList: [lastSelected],
-        });
-      } else {
-        // If nothing selected, clear selection
-        onSelection({
-          text: '',
-          selectedList: [],
-        });
-      }
+    if (isSingleSelect) {
+      const list = selectionValue.selectedList;
+      const chosen = list.length > 0 ? list[0] : null;
+      onSelection(
+        chosen
+          ? { text: chosen.value, selectedList: [chosen] }
+          : { text: '', selectedList: [] }
+      );
     } else {
-      // Multi-select mode: pass through as-is
       onSelection(selectionValue);
     }
   };
@@ -61,13 +65,17 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     <View style={styles.container}>
       <PaperSelect
         dialogCloseButtonText="Close"
+        dialogDoneButtonText="Done"
         label={label}
         textInputMode="outlined"
         value={value}
         onSelection={handleSelection}
         arrayList={arrayList}
-        selectedArrayList={selectedArrayList}
-        multiEnable={true}
+        selectedArrayList={normalizedSelectedList}
+        multiEnable={paperMultiEnable}
+        limit={limit}
+        limitError="Please select only one option."
+        selectAllEnable={isSingleSelect ? false : selectAllEnable}
         hideSearchBox={toHideSearchBox}
         textInputStyle={{
           height: 52,

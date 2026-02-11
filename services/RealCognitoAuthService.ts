@@ -5,6 +5,11 @@ import { signIn, signUp, confirmSignUp, resendSignUpCode, signOut, getCurrentUse
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { awsConfig } from '../aws-config';
+import {
+  isDeleteAccountOTPApiConfigured,
+  sendDeleteAccountOTPViaApi,
+  verifyDeleteAccountOTPViaApi,
+} from './DeleteAccountOTPService';
 
 export interface CognitoUser {
   email: string;
@@ -18,6 +23,8 @@ export interface CognitoOTPService {
   verifyEmailOTP(email: string, otp: string): Promise<{ success: boolean; userId?: string }>;
   sendPhoneOTP(phoneNumber: string): Promise<boolean>;
   verifyPhoneOTP(phoneNumber: string, otp: string): Promise<{ success: boolean; userId?: string }>;
+  sendDeleteAccountOTP(email: string): Promise<boolean>;
+  verifyDeleteAccountOTP(email: string, otp: string): Promise<boolean>;
   getCurrentUser(): Promise<CognitoUser | null>;
   logout(): Promise<void>;
 }
@@ -596,6 +603,110 @@ class RealCognitoAuthService implements CognitoOTPService {
         [{ text: 'OK' }]
       );
       return { success: false };
+    }
+  }
+
+  /**
+   * Send OTP to email for delete account verification.
+   * Same User Pool as sign-in: uses Invitation message type (Custom Message Lambda
+   * for ForgotPassword returns the delete-account template with {username} and {####}).
+   * If a dedicated Delete Account OTP API is configured, uses that instead.
+   */
+  async sendDeleteAccountOTP(email: string): Promise<boolean> {
+    if (isDeleteAccountOTPApiConfigured()) {
+      console.log('📧 SENDING DELETE ACCOUNT OTP (dedicated service)');
+      return sendDeleteAccountOTPViaApi(email);
+    }
+
+    try {
+      this.ensureAmplifyConfigured();
+
+      console.log('═══════════════════════════════════════════');
+      console.log('📧 SENDING DELETE ACCOUNT OTP (same pool, Invitation message)');
+      console.log('═══════════════════════════════════════════');
+      console.log('Email:', email);
+
+      // Same pool as sign-in OTP: resetPassword triggers ForgotPassword → Lambda sends Invitation (delete-account) template
+      await resetPassword({
+        username: email,
+      });
+
+      console.log('✅ Delete account verification code sent to email');
+      console.log('═══════════════════════════════════════════');
+      return true;
+    } catch (error: any) {
+      console.error('[AWS Cognito] ❌ Failed to send delete account OTP:', error);
+
+      let userMessage = error.message || 'Failed to send verification code. Please try again.';
+      if (error.name === 'LimitExceededException') {
+        userMessage = 'Too many attempts. Please wait a few minutes and try again.';
+      } else if (error.name === 'UserNotFoundException') {
+        userMessage = 'No account found for this email.';
+      }
+
+      Alert.alert('Error Sending Code', userMessage, [{ text: 'OK' }]);
+      return false;
+    }
+  }
+
+  /**
+   * Verify delete account OTP.
+   * Same pattern as sign-in: same pool, confirmResetPassword consumes the code (throwaway password).
+   * If a dedicated Delete Account OTP API is configured, uses that instead.
+   */
+  async verifyDeleteAccountOTP(email: string, otp: string): Promise<boolean> {
+    if (isDeleteAccountOTPApiConfigured()) {
+      console.log('🔍 VERIFYING DELETE ACCOUNT OTP (dedicated service)');
+      return verifyDeleteAccountOTPViaApi(email, otp);
+    }
+
+    try {
+      this.ensureAmplifyConfigured();
+
+      console.log('═══════════════════════════════════════════');
+      console.log('🔍 VERIFYING DELETE ACCOUNT OTP (same pool as sign-in)');
+      console.log('═══════════════════════════════════════════');
+
+      const generateSecurePassword = (): string => {
+        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        const numbers = '0123456789';
+        const special = '!@#$%^&*';
+        let password = '';
+        password += uppercase[Math.floor(Math.random() * uppercase.length)];
+        password += lowercase[Math.floor(Math.random() * lowercase.length)];
+        password += numbers[Math.floor(Math.random() * numbers.length)];
+        password += special[Math.floor(Math.random() * special.length)];
+        const allChars = uppercase + lowercase + numbers + special;
+        for (let i = 0; i < 4; i++) {
+          password += allChars[Math.floor(Math.random() * allChars.length)];
+        }
+        return password.split('').sort(() => Math.random() - 0.5).join('');
+      };
+
+      await confirmResetPassword({
+        username: email,
+        confirmationCode: otp,
+        newPassword: generateSecurePassword(),
+      });
+
+      console.log('✅ Delete account OTP verified');
+      console.log('═══════════════════════════════════════════');
+      return true;
+    } catch (error: any) {
+      console.error('[AWS Cognito] ❌ Failed to verify delete account OTP:', error);
+
+      let errorMessage = 'Invalid verification code. Please try again.';
+      if (error.name === 'CodeMismatchException') {
+        errorMessage = 'Invalid verification code. Please check and try again.';
+      } else if (error.name === 'ExpiredCodeException') {
+        errorMessage = 'Verification code expired. Please request a new one.';
+      } else if (error.name === 'LimitExceededException') {
+        errorMessage = 'Too many attempts. Please wait a few minutes and try again.';
+      }
+
+      Alert.alert('Verification Failed', errorMessage, [{ text: 'OK' }]);
+      return false;
     }
   }
 

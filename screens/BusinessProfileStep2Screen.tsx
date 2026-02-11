@@ -135,7 +135,7 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
     selectedList: [],
   });
 
-  // Standard Meal Size State
+  // Meal Size State
   const [standardMealSize, setStandardMealSize] = useState<MultiSelectState>({
     value: "",
     list: [
@@ -254,7 +254,7 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
       return;
     }
     if (!standardMealSize.value) {
-      Alert.alert('', 'Please select standard meal size');
+      Alert.alert('', 'Please select meal size');
       return;
     }
     if (!businessSize.value) {
@@ -449,7 +449,7 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
                 onSelection={handleBusinessCategoryChange}
                 arrayList={businessCategory.list}
                 selectedArrayList={businessCategory.selectedList}
-                multiEnable={false}
+                multiEnable={true}
               />
             </View>
 
@@ -461,7 +461,7 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
                 onSelection={handleCuisineTypeChange}
                 arrayList={cuisineType.list}
                 selectedArrayList={cuisineType.selectedList}
-                multiEnable={false}
+                multiEnable={true}
               />
             </View>
 
@@ -473,7 +473,7 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
                 onSelection={handlePrimaryServingStyleChange}
                 arrayList={primaryServingStyle.list}
                 selectedArrayList={primaryServingStyle.selectedList}
-                multiEnable={false}
+                multiEnable={true}
               />
             </View>
 
@@ -489,15 +489,15 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
               />
             </View>
 
-            {/* Standard Meal Size */}
+            {/* Meal Size */}
             <View style={styles.inputWrapper}>
               <MultiSelect
-                label="Standard Meal Size"
+                label="Meal Size"
                 value={standardMealSize.value}
                 onSelection={handleStandardMealSizeChange}
                 arrayList={standardMealSize.list}
                 selectedArrayList={standardMealSize.selectedList}
-                multiEnable={false}
+                multiEnable={true}
               />
             </View>
 
@@ -525,7 +525,7 @@ export default function BusinessProfileStep2Screen({ navigation }: { navigation:
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={insets.top}
         >
           {Content}
         </KeyboardAvoidingView>

@@ -1,0 +1,296 @@
+ SAM2 state initialized
+
+📹 Processing 1 frame(s)...
+
+🖼️  Frame 1/1
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Re-detecting objects...
+🔍 Detecting objects in frame 0... (this may take 30-60 seconds on CPU)
+  → Using VQA (Visual Question Answering) for food detection...
+    → Asking: What foods are visible? List them separated by commas.
+    → Raw answer: fries hamburgers onion rings french fries and cola ice tea on a wooden table...
+    → Cleaned answer: fries hamburgers onion rings french fries, cola ice tea on a wooden table...
+    ✓ Answer: fries hamburgers onion rings french fries, cola ice tea on a wooden table...
+  → Extracted food items: Fries, Hamburgers, Onion, Rings, French, Fries Hamburgers, Hamburgers Onion, Onion Rings, Rings French, French Fries, Cola, Ice, Tea, Cola Ice, Ice Tea, Tea On, On A
+  → Grounding food items from VQA answers...
+  ✓ VQA complete: found 56 objects
+✓ Detection complete: found 17 objects
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Florence-2 detected 17 objects: ['Fries', 'Fries', 'Hamburgers', 'Hamburgers', 'Hamburgers', 'Onion', 'Onion', 'Hambers', 'French fries', 'French fries', 'Cola', 'Cola', 'Coca ice', 'Ice ice', 'Ice ice', 'Ice tea', 'Tea']
+frame loading (JPEG): 100%|█████████████████████████████████████████| 1/1 [00:00<00:00, 76.28it/s]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID1 (Fries) to SAM2 with box: [[110.80000305 249.75048828]
+ [342.80001831 392.33450317]]
+/Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/sam2/sam2_video_predictor.py:1100: UserWarning: cannot import name '_C' from 'sam2' (/Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/sam2/__init__.py)
+
+Skipping the post-processing step due to the error above. You can still use SAM 2 and it's OK to ignore the error above, although some post-processing functionality may be limited (which doesn't affect the results in most cases; see https://github.com/facebookresearch/sam2/blob/main/INSTALL.md).
+  pred_masks_gpu = fill_holes_in_mask_scores(
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID1 (Fries) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID2 (Fries) to SAM2 with box: [[222.80000305  82.03149414]
+ [396.3999939  183.02848816]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID2 (Fries) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID3 (Hamburgers) to SAM2 with box: [[514.79998779 156.97949219]
+ [751.60003662 330.18249512]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID3 (Hamburgers) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID4 (Hamburgers) to SAM2 with box: [[ 13.19999981 144.64050293]
+ [231.6000061  305.50448608]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID4 (Hamburgers) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID5 (Hamburgers) to SAM2 with box: [[332.3999939  214.56149292]
+ [541.20001221 375.88247681]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID5 (Hamburgers) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID6 (Onion) to SAM2 with box: [[640.40002441 220.95948792]
+ [730.         263.003479  ]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID6 (Onion) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID7 (Onion) to SAM2 with box: [[530.         232.8414917 ]
+ [633.20001221 264.83148193]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID7 (Onion) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID8 (Hambers) to SAM2 with box: [[515.60003662 157.43649292]
+ [750.79998779 329.72549438]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID8 (Hambers) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID9 (French fries) to SAM2 with box: [[110.80000305 249.75048828]
+ [342.         392.33450317]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID9 (French fries) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID10 (French fries) to SAM2 with box: [[222.          82.48849487]
+ [395.6000061  183.02848816]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID10 (French fries) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID11 (Cola) to SAM2 with box: [[385.20001221  27.19149971]
+ [520.40002441 225.52949524]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID11 (Cola) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID12 (Cola) to SAM2 with box: [[587.60003662  27.64849854]
+ [729.20001221 195.82449341]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID12 (Cola) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID13 (Coca ice) to SAM2 with box: [[385.20001221  27.19149971]
+ [521.20001221 225.52949524]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID13 (Coca ice) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID14 (Ice ice) to SAM2 with box: [[386.          27.64849854]
+ [520.40002441 225.07249451]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID14 (Ice ice) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID15 (Ice ice) to SAM2 with box: [[587.60003662  27.64849854]
+ [730.         195.82449341]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID15 (Ice ice) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID16 (Ice tea) to SAM2 with box: [[587.60003662  28.10549927]
+ [730.         195.82449341]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID16 (Ice tea) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Adding object ID17 (Tea) to SAM2 with box: [[385.20001221  28.10549927]
+ [521.20001221 225.52949524]]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: ✅ Successfully added object ID17 (Tea) to SAM2
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Added 17/17 objects to SAM2. Successfully added IDs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Getting SAM2 masks for 17 objects (relative_idx=0)
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calling infer_single_frame with relative_idx=0, inference_state has 17 objects
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Inference state obj_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: SAM2 infer_single_frame returned:
+INFO:app.pipeline:[run-2a63ba89]   - frame_idx: 0
+INFO:app.pipeline:[run-2a63ba89]   - objects: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+INFO:app.pipeline:[run-2a63ba89]   - mask_logits shape: torch.Size([17, 1, 457, 800])
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Tracked objects: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: SAM2 produced masks for 17 objects: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+propagate in video: 100%|██████████████████████████████████████████| 1/1 [00:00<00:00, 247.28it/s]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: SAM2 produced masks for frames: [0]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Looking for masks at relative_idx=0, available keys=[0]
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Saved 17 segmentation masks to /Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/data/outputs/run-2a63ba89/masks
+WARNING:app.pipeline:[run-2a63ba89] No reference object detected - using general calibration (frame_idx=0)
+INFO:app.pipeline:[run-2a63ba89] Using scene median depth as reference plane: 0.408m
+INFO:app.pipeline:[run-2a63ba89] General calibration: 16.00 px/cm, reference plane at 0.408m
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 1 (Fries)
+INFO:app.pipeline:Volume calculation for Fries: area=75.98cm², height=0.49cm, shape_factor=0.40, diameter=9.84cm, raw_volume=14.95ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 1 volume=14.95ml, height=0.49cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 2 (Fries)
+INFO:app.pipeline:Volume calculation for Fries: area=38.05cm², height=0.35cm, shape_factor=0.40, diameter=6.96cm, raw_volume=5.30ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 2 volume=5.30ml, height=0.35cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 3 (Hamburgers)
+INFO:app.pipeline:Volume calculation for Hamburgers: area=114.58cm², height=3.02cm, shape_factor=0.65, diameter=12.08cm, raw_volume=224.89ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 3 volume=224.89ml, height=3.02cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 4 (Hamburgers)
+INFO:app.pipeline:Volume calculation for Hamburgers: area=94.57cm², height=2.74cm, shape_factor=0.65, diameter=10.97cm, raw_volume=168.64ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 4 volume=168.64ml, height=2.74cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 5 (Hamburgers)
+INFO:app.pipeline:Volume calculation for Hamburgers: area=108.27cm², height=2.94cm, shape_factor=0.65, diameter=11.74cm, raw_volume=206.58ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 5 volume=206.58ml, height=2.94cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 6 (Onion)
+INFO:app.pipeline:Volume calculation for Onion: area=9.05cm², height=1.00cm, shape_factor=0.50, diameter=3.39cm, raw_volume=4.52ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 6 volume=4.52ml, height=1.00cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 7 (Onion)
+INFO:app.pipeline:Volume calculation for Onion: area=7.51cm², height=1.00cm, shape_factor=0.50, diameter=3.09cm, raw_volume=3.75ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 7 volume=3.75ml, height=1.00cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 8 (Hambers)
+INFO:app.pipeline:Volume calculation for Hambers: area=114.53cm², height=3.02cm, shape_factor=0.65, diameter=12.08cm, raw_volume=224.75ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 8 volume=224.75ml, height=3.02cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 9 (French fries)
+INFO:app.pipeline:Volume calculation for French fries: area=75.98cm², height=0.49cm, shape_factor=0.40, diameter=9.84cm, raw_volume=14.95ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 9 volume=14.95ml, height=0.49cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 10 (French fries)
+INFO:app.pipeline:Volume calculation for French fries: area=38.05cm², height=0.35cm, shape_factor=0.40, diameter=6.96cm, raw_volume=5.30ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 10 volume=5.30ml, height=0.35cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 11 (Cola)
+INFO:app.pipeline:Volume calculation for Cola: area=77.07cm², height=2.48cm, shape_factor=0.60, diameter=9.91cm, raw_volume=114.51ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 11 volume=114.51ml, height=2.48cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 12 (Cola)
+INFO:app.pipeline:Volume calculation for Cola: area=61.30cm², height=2.21cm, shape_factor=0.60, diameter=8.83cm, raw_volume=81.24ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 12 volume=81.24ml, height=2.21cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 13 (Coca ice)
+INFO:app.pipeline:Volume calculation for Coca ice: area=77.07cm², height=2.48cm, shape_factor=0.60, diameter=9.91cm, raw_volume=114.51ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 13 volume=114.51ml, height=2.48cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 14 (Ice ice)
+INFO:app.pipeline:Volume calculation for Ice ice: area=77.07cm², height=2.48cm, shape_factor=0.60, diameter=9.91cm, raw_volume=114.52ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 14 volume=114.52ml, height=2.48cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 15 (Ice ice)
+INFO:app.pipeline:Volume calculation for Ice ice: area=61.31cm², height=2.21cm, shape_factor=0.60, diameter=8.84cm, raw_volume=81.25ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 15 volume=81.25ml, height=2.21cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 16 (Ice tea)
+INFO:app.pipeline:Volume calculation for Ice tea: area=61.30cm², height=2.21cm, shape_factor=0.60, diameter=8.83cm, raw_volume=81.24ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 16 volume=81.24ml, height=2.21cm
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Calculating volume for object 17 (Tea)
+INFO:app.pipeline:Volume calculation for Tea: area=77.07cm², height=2.48cm, shape_factor=0.60, diameter=9.91cm, raw_volume=114.52ml
+INFO:app.pipeline:[run-2a63ba89] Frame 0: Object 17 volume=114.52ml, height=2.48cm
+WARNING:app.pipeline:[run-2a63ba89] Frame 0: relative_idx 0 not in video_segments! Available: [0]
+✓ Frame 0 processing complete
+📊 Compiling results...
+INFO:app.pipeline:[run-2a63ba89] Tracked 17 objects
+🍎 Analyzing nutrition...
+INFO:app.pipeline:[run-2a63ba89] Running nutrition analysis...
+INFO:app.models:Loading Nutrition RAG system...
+INFO:faiss.loader:Loading faiss.
+INFO:faiss.loader:Successfully loaded faiss.
+Loading sentence transformer model...
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+
+Extracting density data from ap815e.pdf...
+  Error reading PDF: [Errno 2] No such file or directory: '/Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/data/rag/ap815e.pdf'
+  Using fallback densities...
+
+Loading calorie databases...
+  Reading FNDDS.xlsx...
+    Error loading FNDDS: [Errno 2] No such file or directory: '/Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/data/rag/FNDDS.xlsx'
+  Reading CoFID.xlsx...
+    Error loading CoFID: [Errno 2] No such file or directory: '/Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/data/rag/CoFID.xlsx'
+  Using fallback calorie database...
+
+  Total calorie entries: 8
+
+Building FAISS index...
+  Encoding 18 food descriptions...
+Batches: 100%|██████████████████████████████████████████████████████| 1/1 [00:00<00:00,  8.63it/s]
+  FAISS index built with 18 entries
+INFO:app.models:✓ NutritionRAG loaded successfully
+
+  Looking up nutrition for: Fries (14.9ml)
+Batches: 100%|██████████████████████████████████████████████████████| 1/1 [00:00<00:00, 14.30it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 144.51it/s]
+
+  Looking up nutrition for: Hamburgers (224.9ml)
+Batches: 100%|██████████████████████████████████████████████████████| 1/1 [00:00<00:00, 19.70it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 179.27it/s]
+
+  Looking up nutrition for: Hamburgers (168.6ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 121.63it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 191.69it/s]
+
+  Looking up nutrition for: Hamburgers (206.6ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 187.47it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 180.15it/s]
+
+  Looking up nutrition for: Hambers (224.7ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 164.21it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 159.77it/s]
+
+  Looking up nutrition for: French fries (14.9ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 182.26it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 183.29it/s]
+
+  Looking up nutrition for: Cola (114.5ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 187.90it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 199.36it/s]
+
+  Looking up nutrition for: Cola (81.2ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 200.41it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 153.02it/s]
+
+  Looking up nutrition for: Coca ice (114.5ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 178.75it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 192.80it/s]
+
+  Looking up nutrition for: Ice ice (114.5ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 190.04it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 200.68it/s]
+
+  Looking up nutrition for: Ice ice (81.3ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 186.85it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 188.68it/s]
+
+  Looking up nutrition for: Ice tea (81.2ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 195.11it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 184.64it/s]
+
+  Looking up nutrition for: Tea (114.5ml)
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 187.62it/s]
+Batches: 100%|█████████████████████████████████████████████████████| 1/1 [00:00<00:00, 197.43it/s]
+✓ Nutrition analysis complete
+INFO:app.pipeline:[run-2a63ba89] ✓ Image processing completed successfully
+
+============================================================
+Results
+============================================================
+
+Detected 13 food items:
+
+  1. Fries
+     Calories: 8.632239612377726 kcal
+     Volume: 14.947601060394332 ml
+
+  2. Hamburgers
+     Calories: 84.33197257984416 kcal
+     Volume: 224.88526021291776 ml
+
+  3. Hamburgers
+     Calories: 63.24101563229838 kcal
+     Volume: 168.64270835279567 ml
+
+  4. Hamburgers
+     Calories: 77.46804212474449 kcal
+     Volume: 206.5814456659853 ml
+
+  5. Hambers
+     Calories: 148.89506656205583 kcal
+     Volume: 224.74727028234844 ml
+
+  6. French fries
+     Calories: 8.631573963960962 kcal
+     Volume: 14.946448422443225 ml
+
+  7. Cola
+     Calories: 171.76522344016917 kcal
+     Volume: 114.51014896011277 ml
+
+  8. Cola
+     Calories: 121.85310259943664 kcal
+     Volume: 81.23540173295775 ml
+
+  9. Coca ice
+     Calories: 303.45189474429884 kcal
+     Volume: 114.51014896011277 ml
+
+  10. Ice ice
+     Calories: 180.36719709912416 kcal
+     Volume: 114.5188553010312 ml
+
+  11. Ice ice
+     Calories: 127.97021764800262 kcal
+     Volume: 81.25093184000166 ml
+
+  12. Ice tea
+     Calories: 12.186474999417761 kcal
+     Volume: 81.24316666278509 ml
+
+  13. Tea
+     Calories: 171.77828295154677 kcal
+     Volume: 114.5188553010312 ml
+
+Meal Summary:
+  Total Calories: 1480.5723039572772 kcal
+  Total Volume: 1556.5382427549173 ml
+  Food Items: 13
+
+============================================================
+✓ Processing complete!
+============================================================
+
+Full results saved to: /Users/leo/FoodProject/food-detection/FoodAI/nutrition-video-analysis/terraform/docker/results.json
+(venv) leo@Leos-MacBook-Pro docker % 

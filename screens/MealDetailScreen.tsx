@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,15 +13,20 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Animated,
+  Modal,
+  Image,
+  KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import type { AnalysisEntry, DishContent } from '../store/slices/historySlice';
+import type { AnalysisEntry, DishContent, SegmentedImages } from '../store/slices/historySlice';
 import { updateAnalysis } from '../store/slices/historySlice';
+import { nutritionAnalysisAPI } from '../services/NutritionAnalysisAPI';
 import VectorBackButtonCircle from '../components/VectorBackButtonCircle';
 import OptimizedImage from '../components/OptimizedImage';
 import AppHeader from '../components/AppHeader';
@@ -34,10 +39,14 @@ export default function MealDetailScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const businessProfile = useAppSelector((state) => state.profile.businessProfile);
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
 
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const videoRef = useRef<Video>(null);
   const screenSwipePosition = useRef(new Animated.Value(0)); // For screen-level swipe right gesture
+
+  const handleVideoPlay = useCallback(() => {
+    setIsVideoPlaying((prev) => !prev);
+  }, []);
 
   // Use business name as display name, fallback to email if business name not available
   // Only use businessName if it exists and is not empty
@@ -78,6 +87,81 @@ export default function MealDetailScreen() {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [editingMealName, setEditingMealName] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSegmentationOverlay, setShowSegmentationOverlay] = useState(false);
+  const [overlayImageUrl, setOverlayImageUrl] = useState<string | null>(null);
+  const [showFullImageModal, setShowFullImageModal] = useState(false);
+  const [fullImageUri, setFullImageUri] = useState<string | null>(null);
+  // When segmented overlay URL fails to load (e.g. expired), refetch or show original image
+  const [overlayLoadFailed, setOverlayLoadFailed] = useState(false);
+  const [refreshedSegmentedImages, setRefreshedSegmentedImages] = useState<SegmentedImages | null>(null);
+  const [refreshingOverlay, setRefreshingOverlay] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(true);
+  
+  // Effective overlay: use refreshed URLs if we got them, else stored
+  const effectiveSegmentedImages = refreshedSegmentedImages ?? item?.segmented_images;
+  
+  // Reset overlay state and loader when item changes
+  useEffect(() => {
+    setOverlayLoadFailed(false);
+    setRefreshedSegmentedImages(null);
+    setMediaLoading(true);
+  }, [item?.id]);
+
+  // Show loader again when overlay URL changes (e.g. after refetch)
+  useEffect(() => {
+    setMediaLoading(true);
+  }, [effectiveSegmentedImages?.overlay_urls?.[0]?.url]);
+
+  // When we have job_id but no overlay URLs (e.g. never saved), fetch once so segmented images load
+  useEffect(() => {
+    if (!item?.job_id || !user?.email || effectiveSegmentedImages?.overlay_urls?.length || refreshingOverlay) return;
+    let cancelled = false;
+    (async () => {
+      setRefreshingOverlay(true);
+      try {
+        const fresh = await nutritionAnalysisAPI.getResults(item.job_id!, true);
+        if (cancelled) return;
+        if (fresh?.segmented_images?.overlay_urls?.length) {
+          setRefreshedSegmentedImages(fresh.segmented_images);
+          await dispatch(updateAnalysis({
+            userEmail: user.email,
+            analysisId: item.id,
+            updates: { segmented_images: fresh.segmented_images },
+          })).unwrap();
+        }
+      } catch {
+        if (!cancelled) setOverlayLoadFailed(true);
+      } finally {
+        if (!cancelled) setRefreshingOverlay(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [item?.id, item?.job_id, user?.email]);
+
+  const handleOverlayLoadError = useCallback(async () => {
+    if (item?.job_id && user?.email) {
+      setRefreshingOverlay(true);
+      try {
+        const fresh = await nutritionAnalysisAPI.getResults(item.job_id, true);
+        if (fresh?.segmented_images?.overlay_urls?.length) {
+          setRefreshedSegmentedImages(fresh.segmented_images);
+          await dispatch(updateAnalysis({
+            userEmail: user.email,
+            analysisId: item.id,
+            updates: { segmented_images: fresh.segmented_images },
+          })).unwrap();
+        } else {
+          setOverlayLoadFailed(true);
+        }
+      } catch {
+        setOverlayLoadFailed(true);
+      } finally {
+        setRefreshingOverlay(false);
+      }
+    } else {
+      setOverlayLoadFailed(true);
+    }
+  }, [item?.id, item?.job_id, user?.email, dispatch]);
   
   // Initialize state from item data if it exists, otherwise use defaults
   const [dishContents, setDishContents] = useState<DishContent[]>(
@@ -90,15 +174,26 @@ export default function MealDetailScreen() {
         ]
   );
   const [mealName, setMealName] = useState(item?.mealName || 'Burger');
-  // Use the total calories from the API's nutritionalInfo
-  const totalCalories = item?.nutritionalInfo?.calories || 0;
-  
+  // Total calories = sum of all dish content rows; fall back to API value when sum is 0
+  const totalCalories = useMemo(() => {
+    const sum = dishContents.reduce((acc, row) => {
+      const cal = Number(row.calories);
+      return acc + (Number.isFinite(cal) ? cal : 0);
+    }, 0);
+    return sum > 0 ? sum : (item?.nutritionalInfo?.calories ?? 0);
+  }, [dishContents, item?.nutritionalInfo?.calories]);
+
   // Track which input is currently focused
   const focusedInputRef = useRef<{ rowId: string; field: string } | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const tableContainerRef = useRef<View>(null);
+  const mealNameContainerRef = useRef<View>(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   // Refs for input fields to enable "next" button navigation
   const inputRefs = useRef<{ [rowId: string]: { name?: TextInput; weight?: TextInput; calories?: TextInput } }>({});
+  // Refs for row containers to enable scrolling to specific rows
+  const rowRefs = useRef<{ [rowId: string]: View | null }>({});
 
   // Format capture date and time from item.timestamp (same approach as login time)
   const captureDate = item?.timestamp 
@@ -149,37 +244,59 @@ export default function MealDetailScreen() {
       })
     : null;
 
-  // Handle keyboard show to scroll to input
+  // Track keyboard visibility
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        // Scroll to input when keyboard appears, but not too aggressively
-        setTimeout(() => {
-          if (tableContainerRef.current && scrollViewRef.current) {
-            tableContainerRef.current.measureLayout(
-              scrollViewRef.current as any,
-              (x, y) => {
-                // Only scroll if input is below the visible area
-                scrollViewRef.current?.scrollTo({
-                  y: Math.max(0, y - 50), // Small offset, not too much
-                  animated: true,
-                });
-              },
-              () => {
-                // Fallback: minimal scroll
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-              }
-            );
-          }
-        }, 200);
-      }
-    );
-
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
     return () => {
-      keyboardDidShowListener.remove();
+      showSub.remove();
+      hideSub.remove();
     };
   }, []);
+
+  // Helper function to scroll to an input - ensure it always works
+  const scrollToInput = (rowId?: string) => {
+    // Single scroll attempt after keyboard has time to appear
+    setTimeout(() => {
+      let targetRef: View | null = null;
+      
+      if (rowId && rowRefs.current[rowId]) {
+        targetRef = rowRefs.current[rowId];
+      } else if (mealNameContainerRef.current) {
+        targetRef = mealNameContainerRef.current;
+      } else if (tableContainerRef.current) {
+        targetRef = tableContainerRef.current;
+      }
+      
+      if (targetRef && scrollViewRef.current) {
+        (targetRef as any).measureLayout(
+          scrollViewRef.current as any,
+          (x: number, y: number) => {
+            // Scroll to show input with padding above
+            scrollViewRef.current?.scrollTo({
+              y: Math.max(0, y - 100),
+              animated: true,
+            });
+          },
+          () => {
+            // Fallback: scroll to end
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }
+        );
+      } else if (scrollViewRef.current) {
+        // Fallback: scroll to end if measureLayout fails
+        scrollViewRef.current.scrollToEnd({ animated: true });
+      }
+    }, 300);
+  };
 
   // Save changes to Redux store and backend
   const saveChanges = useCallback(async (): Promise<boolean> => {
@@ -272,11 +389,22 @@ export default function MealDetailScreen() {
 
   const handleUpdateRow = (rowId: string, field: 'name' | 'weight' | 'calories', value: string) => {
     setDishContents(prev =>
-      prev.map(item => {
-        if (item.id === rowId) {
-          return { ...item, [field]: value };
+      prev.map(row => {
+        if (row.id !== rowId) return row;
+        if (field === 'weight') {
+          const updated = { ...row, weight: value };
+          const oldWeight = Number(row.weight);
+          const oldCal = Number(row.calories);
+          // Recalculate calories proportionally when weight changes (e.g. 100g @ 200 kcal → 200g → 400 kcal)
+          if (Number.isFinite(oldWeight) && oldWeight > 0 && Number.isFinite(oldCal)) {
+            const newWeight = Number(value);
+            if (Number.isFinite(newWeight)) {
+              updated.calories = String(Math.round((newWeight / oldWeight) * oldCal));
+            }
+          }
+          return updated;
         }
-        return item;
+        return { ...row, [field]: value };
       })
     );
   };
@@ -332,25 +460,30 @@ export default function MealDetailScreen() {
         failOffsetY={[-10, 10]}
       >
         <Animated.View style={{ flex: 1 }}>
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <View style={{ flex: 1 }}>
-          <AppHeader
-            displayName={displayName}
-            lastLoginDate={lastLoginDate}
-            lastLoginTime={lastLoginTime}
-            onProfilePress={() => {
-              try {
-                navigation.navigate('Profile');
-              } catch (error) {
-                console.error('[MealDetail] Error navigating to Profile:', error);
-              }
-            }}
-          />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      >
+        <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+          <View style={{ flex: 1 }}>
+            <AppHeader
+              displayName={displayName}
+              lastLoginDate={lastLoginDate}
+              lastLoginTime={lastLoginTime}
+              onProfilePress={() => {
+                try {
+                  navigation.navigate('Profile');
+                } catch (error) {
+                  console.error('[MealDetail] Error navigating to Profile:', error);
+                }
+              }}
+            />
 
-          <ScrollView 
+            <ScrollView 
             ref={scrollViewRef}
             style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: isKeyboardVisible ? 200 : 100 }]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             decelerationRate="normal"
@@ -363,29 +496,34 @@ export default function MealDetailScreen() {
           >
         {/* Media Preview */}
         <View style={styles.mediaContainer}>
+          {(() => {
+            const isVideo = !!item.videoUri;
+            const hasOverlay = !overlayLoadFailed && effectiveSegmentedImages?.overlay_urls && effectiveSegmentedImages.overlay_urls.length > 0;
+            const overlayUrl = hasOverlay ? effectiveSegmentedImages!.overlay_urls![0].url : null;
+            const displayUri = overlayUrl || item.imageUri || null;
+            const showImageLoader = !isVideo && (!!displayUri || !!item.imageUri);
+            return (
+          <>
           {isVideo && item.videoUri ? (
             <>
               <Video
-                ref={videoRef}
                 source={{ uri: item.videoUri }}
                 style={styles.media}
                 resizeMode={ResizeMode.COVER}
+                isLooping={false}
+                isMuted={false}
                 shouldPlay={isVideoPlaying}
-                isLooping
-                useNativeControls={isVideoPlaying}
+                useNativeControls={false}
                 onPlaybackStatusUpdate={(status) => {
-                  if (status.isLoaded && 'isPlaying' in status) {
-                    setIsVideoPlaying(status.isPlaying);
+                  if (status.isLoaded && status.didJustFinish) {
+                    setIsVideoPlaying(false);
                   }
                 }}
               />
               {!isVideoPlaying && (
                 <TouchableOpacity
                   style={styles.playButtonOverlay}
-                  onPress={() => {
-                    setIsVideoPlaying(true);
-                    videoRef.current?.playAsync();
-                  }}
+                  onPress={handleVideoPlay}
                   activeOpacity={0.7}
                 >
                   <View style={styles.playButton}>
@@ -393,20 +531,81 @@ export default function MealDetailScreen() {
                   </View>
                 </TouchableOpacity>
               )}
+              {isVideoPlaying && (
+                <TouchableOpacity
+                  style={styles.playButtonOverlay}
+                  onPress={handleVideoPlay}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.playButton}>
+                    <Ionicons name="pause" size={28} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+              )}
             </>
-          ) : item.imageUri ? (
-            <OptimizedImage
-              source={{ uri: item.imageUri }}
-              style={styles.media}
-              resizeMode="cover"
-              cachePolicy="memory-disk"
-              priority="normal"
-            />
           ) : (
-            <View style={[styles.media, styles.placeholder]} />
+            // Show segmented overlay when available; on load error refetch by job_id or show original image
+            displayUri ? (
+              <TouchableOpacity
+                style={styles.mediaTouchable}
+                activeOpacity={1}
+                onPress={() => {
+                  setFullImageUri(displayUri);
+                  setShowFullImageModal(true);
+                }}
+              >
+                {hasOverlay ? (
+                  <Image
+                    source={{ uri: overlayUrl }}
+                    style={styles.media}
+                    resizeMode="cover"
+                    onLoad={() => setMediaLoading(false)}
+                    onError={() => { setMediaLoading(false); handleOverlayLoadError(); }}
+                  />
+                ) : (
+                  <OptimizedImage
+                    source={{ uri: item.imageUri! }}
+                    style={styles.media}
+                    resizeMode="cover"
+                    cachePolicy="memory-disk"
+                    priority="normal"
+                    onImageLoad={() => setMediaLoading(false)}
+                  />
+                )}
+              </TouchableOpacity>
+            ) : item.imageUri ? (
+              <TouchableOpacity
+                style={styles.mediaTouchable}
+                activeOpacity={1}
+                onPress={() => {
+                  setFullImageUri(item.imageUri!);
+                  setShowFullImageModal(true);
+                }}
+              >
+                <OptimizedImage
+                  source={{ uri: item.imageUri }}
+                  style={styles.media}
+                  resizeMode="cover"
+                  cachePolicy="memory-disk"
+                  priority="normal"
+                  onImageLoad={() => setMediaLoading(false)}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.media, styles.placeholder]} />
+            )
           )}
+          {showImageLoader && mediaLoading && (
+            <View style={[StyleSheet.absoluteFill, styles.mediaLoader]} pointerEvents="none">
+              <ActivityIndicator size="large" color="#7BA21B" />
+            </View>
+          )}
+          </>
+            );
+          })()}
+          
           {/* Back Button Overlay */}
-          <View style={styles.backButtonOverlay}>
+          <View style={styles.backButtonOverlay} pointerEvents="box-none">
             <View style={styles.backButtonBackground}>
               <VectorBackButtonCircle
                 onPress={() => navigation.goBack()}
@@ -415,17 +614,86 @@ export default function MealDetailScreen() {
             </View>
           </View>
         </View>
+        
+        {/* Segmentation Overlay Modal */}
+        <Modal
+          visible={showSegmentationOverlay}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSegmentationOverlay(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {overlayImageUrl === item.imageUri ? 'Original Image' : 'Segmentation Overlay'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowSegmentationOverlay(false)}
+                  style={styles.closeButton}
+                >
+                  <Ionicons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+              {overlayImageUrl && (
+                <Image
+                  source={{ uri: overlayImageUrl }}
+                  style={styles.overlayImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Full-screen image modal */}
+        <Modal
+          visible={showFullImageModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowFullImageModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.fullImageModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowFullImageModal(false)}
+          >
+            <View style={styles.fullImageModalContent} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.fullImageCloseButton}
+                onPress={() => setShowFullImageModal(false)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="close" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+              {fullImageUri ? (
+                <TouchableOpacity
+                  style={styles.fullImageWrapper}
+                  activeOpacity={1}
+                  onPress={() => {}}
+                >
+                  <Image
+                    source={{ uri: fullImageUri }}
+                    style={styles.fullImage}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* Meal Info */}
         <View style={styles.mealInfo}>
         <View style={styles.mealHeader}>
-          <View style={{ flex: 1 }}>
+          <View ref={mealNameContainerRef} style={{ flex: 1 }}>
             {editingMealName ? (
               <TextInput
                 style={[styles.mealNameInput, styles.inputFocused]}
                 value={mealName}
                 onChangeText={setMealName}
                 onBlur={() => setEditingMealName(false)}
+                onFocus={() => scrollToInput()}
                 placeholder="Meal name"
                 placeholderTextColor="#D1D5DB"
                 autoFocus
@@ -476,7 +744,11 @@ export default function MealDetailScreen() {
           {dishContents.map((row) => {
             const isEditing = editingRowId === row.id;
             return (
-              <View key={row.id} style={styles.tableRow}>
+              <View 
+                key={row.id} 
+                ref={(ref) => { rowRefs.current[row.id] = ref; }}
+                style={styles.tableRow}
+              >
                 <View style={[styles.tableCell, { flex: 2 }]} pointerEvents="box-none">
                   {isEditing ? (
                     <TextInput
@@ -491,25 +763,7 @@ export default function MealDetailScreen() {
                       onChangeText={(value) => handleUpdateRow(row.id, 'name', value)}
                       onFocus={() => {
                         handleInputFocus(row.id, 'name');
-                        // Scroll to input when focused, but not too aggressively
-                        setTimeout(() => {
-                          if (tableContainerRef.current && scrollViewRef.current) {
-                            tableContainerRef.current.measureLayout(
-                              scrollViewRef.current as any,
-                              (x, y) => {
-                                // Only scroll if input is below the visible area
-                                scrollViewRef.current?.scrollTo({
-                                  y: Math.max(0, y - 50), // Small offset, not too much
-                                  animated: true,
-                                });
-                              },
-                              () => {
-                                // Fallback: minimal scroll
-                                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                              }
-                            );
-                          }
-                        }, 200);
+                        scrollToInput(row.id);
                       }}
                       placeholder="Item name"
                       placeholderTextColor="#D1D5DB"
@@ -541,7 +795,10 @@ export default function MealDetailScreen() {
                       style={[styles.tableInput, styles.inputFocused]}
                       value={row.weight}
                       onChangeText={(value) => handleUpdateRow(row.id, 'weight', value)}
-                      onFocus={() => handleInputFocus(row.id, 'weight')}
+                      onFocus={() => {
+                        handleInputFocus(row.id, 'weight');
+                        scrollToInput(row.id);
+                      }}
                       onSubmitEditing={() => {
                         // Focus the calories input when "next" is pressed
                         setTimeout(() => {
@@ -550,7 +807,7 @@ export default function MealDetailScreen() {
                       }}
                       placeholder="Weight"
                       placeholderTextColor="#D1D5DB"
-                      keyboardType="numeric"
+                      keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
                       editable={true}
                       blurOnSubmit={false}
                       returnKeyType="next"
@@ -572,7 +829,10 @@ export default function MealDetailScreen() {
                       style={[styles.tableInput, styles.inputFocused]}
                       value={row.calories}
                       onChangeText={(value) => handleUpdateRow(row.id, 'calories', value)}
-                      onFocus={() => handleInputFocus(row.id, 'calories')}
+                      onFocus={() => {
+                        handleInputFocus(row.id, 'calories');
+                        scrollToInput(row.id);
+                      }}
                       onSubmitEditing={() => {
                         Keyboard.dismiss();
                         setEditingRowId(null);
@@ -580,7 +840,7 @@ export default function MealDetailScreen() {
                       }}
                       placeholder="Calories"
                       placeholderTextColor="#D1D5DB"
-                      keyboardType="numeric"
+                      keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric'}
                       editable={true}
                       blurOnSubmit={true}
                       returnKeyType="done"
@@ -612,7 +872,10 @@ export default function MealDetailScreen() {
             );
           })}
         </Pressable>
-      </ScrollView>
+            </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       {/* Next Button - Fixed at Bottom */}
       <BottomButtonContainer>
@@ -648,8 +911,6 @@ export default function MealDetailScreen() {
           </Text>
         </TouchableOpacity>
       </BottomButtonContainer>
-        </View>
-      </TouchableWithoutFeedback>
         </Animated.View>
       </PanGestureHandler>
     </SafeAreaView>
@@ -670,8 +931,22 @@ const styles = StyleSheet.create({
   mediaContainer: {
     width: '100%',
     height: 250,
-    backgroundColor: '#000000',
+    backgroundColor: '#F3F4F6',
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  mediaLoader: {
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaTouchable: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   media: {
     width: '100%',
@@ -851,6 +1126,89 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  segmentationButton: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    backgroundColor: 'rgba(123, 162, 27, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  segmentationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '95%',
+    maxHeight: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  overlayImage: {
+    width: '100%',
+    height: 400,
+    borderRadius: 8,
+  },
+  fullImageModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageModalContent: {
+    width: '100%',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 24,
+  },
+  fullImageWrapper: {
+    width: '100%',
+    flex: 1,
+  },
+  fullImage: {
+    width: '100%',
+    flex: 1,
   },
 });
 

@@ -1,0 +1,201 @@
+{
+  "job_id": "run-edafc498",
+  "media_name": "test.mov",
+  "media_type": "video",
+  "timestamp": "2026-02-06T02:36:59.531366",
+  "num_frames_processed": 15,
+  "calibration": {
+    "pixels_per_cm": 16.0,
+    "calibrated": true,
+    "reference_plane_depth_m": "0.42460185"
+  },
+  "florence_detections": [
+    {
+      "frame_idx": 0,
+      "caption": "Fried Fish with Stewed Beans and Boiled Cassava. This is a hearty and flavorful meal, characteristic of many West African and Caribbean cuisines. The combination of protein (fish), legumes (beans), and starchy root vegetables provides a well-rounded and satisfying dish. The spiciness of the pepper sauce is likely a key flavor component.",
+      "detections": [
+        {
+          "label": "Fried Fish (Tilapia or similar whole fish)",
+          "box": [
+            393.75,
+            582.4166870117188,
+            581.25,
+            1365.666748046875
+          ],
+          "box_area": 146859.390625
+        },
+        {
+          "label": "Boiled Cassava (Yuca)",
+          "box": [
+            0.0,
+            0.0,
+            250.0,
+            903.7500610351562
+          ],
+          "box_area": 225937.515625
+        },
+        {
+          "label": "Stewed Black-Eyed Peas",
+          "box": [
+            156.25,
+            200.83334350585938,
+            531.25,
+            923.8333740234375
+          ],
+          "box_area": 271125.0
+        },
+        {
+          "label": "Spicy Pepper Sauce",
+          "box": [
+            175.0,
+            200.83334350585938,
+            487.5,
+            823.4166870117188
+          ],
+          "box_area": 194557.296875
+        }
+      ],
+      "total_detected": 4,
+      "unquantified_ingredients": []
+    },
+    {
+      "frame_idx": 5,
+      "caption": "Fried Fish with Stewed Beans and Boiled Cassava. This is a hearty and flavorful meal, characteristic of many West African and Caribbean cuisines. The combination of protein (fish), legumes (beans), and starchy root vegetables provides a well-rounded and satisfying dish. The spiciness of the pepper sauce is likely a key flavor component.",
+      "detections": [],
+      "total_detected": 0,
+      "unquantified_ingredients": []
+    },
+    {
+      "frame_idx": 10,
+      "caption": "Fried Fish with Stewed Beans and Boiled Cassava. This is a hearty and flavorful meal, characteristic of many West African and Caribbean cuisines. The combination of protein (fish), legumes (beans), and starchy root vegetables provides a well-rounded and satisfying dish. The spiciness of the pepper sauce is likely a key flavor component.",
+      "detections": [],
+      "total_detected": 0,
+      "unquantified_ingredients": []
+    }
+  ],
+  "tracking": {
+    "objects": {
+      "ID1_Fried Fish (Tilapia or similar whole fish)": {
+        "label": "Fried Fish (Tilapia or similar whole fish)",
+        "statistics": {
+          "max_volume_ml": 1000.0,
+          "median_volume_ml": 1000.0,
+          "mean_volume_ml": 1000.0,
+          "max_height_cm": 5.920762658938549,
+          "max_area_cm2": 440.51953125,
+          "num_frames": 1,
+          "gemini_grams_g": 350.0,
+          "quantity": 3
+        }
+      },
+      "ID2_Boiled Cassava (Yuca)": {
+        "label": "Boiled Cassava (Yuca)",
+        "statistics": {
+          "max_volume_ml": 344.68981527011215,
+          "median_volume_ml": 344.68981527011215,
+          "mean_volume_ml": 344.68981527011215,
+          "max_height_cm": 3.4815161186386,
+          "max_area_cm2": 152.31640625,
+          "num_frames": 1,
+          "gemini_grams_g": 200.0,
+          "quantity": 1
+        }
+      },
+      "ID3_Stewed Black-Eyed Peas": {
+        "label": "Stewed Black-Eyed Peas",
+        "statistics": {
+          "max_volume_ml": 716.3571205800722,
+          "median_volume_ml": 716.3571205800722,
+          "mean_volume_ml": 716.3571205800722,
+          "max_height_cm": 4.442923005901655,
+          "max_area_cm2": 248.0546875,
+          "num_frames": 1,
+          "gemini_grams_g": 200.0,
+          "quantity": 1
+        }
+      },
+      "ID4_Spicy Pepper Sauce": {
+        "label": "Spicy Pepper Sauce",
+        "statistics": {
+          "max_volume_ml": 752.9752929140881,
+          "median_volume_ml": 752.9752929140881,
+          "mean_volume_ml": 752.9752929140881,
+          "max_height_cm": 4.517371786732188,
+          "max_area_cm2": 256.4375,
+          "num_frames": 1,
+          "gemini_grams_g": 150.0,
+          "quantity": 1
+        }
+      }
+    },
+    "total_objects": 4,
+    "caption": "Fried Fish with Stewed Beans and Boiled Cassava. This is a hearty and flavorful meal, characteristic of many West African and Caribbean cuisines. The combination of protein (fish), legumes (beans), and starchy root vegetables provides a well-rounded and satisfying dish. The spiciness of the pepper sauce is likely a key flavor component."
+  },
+  "nutrition": {
+    "items": [
+      {
+        "food_name": "Fried Fish (Tilapia or similar whole fish)",
+        "quantity": 3,
+        "volume_ml": 1000.0,
+        "density_g_per_ml": 1.05,
+        "density_source": "fallback",
+        "density_similarity": 0.6117311716079712,
+        "mass_g": 350.0,
+        "calories_per_100g": 15.0,
+        "total_calories": 52.5,
+        "calorie_source": "fallback",
+        "calorie_similarity": 0.3202817440032959,
+        "matched_food": "salad mixed greens"
+      },
+      {
+        "food_name": "Boiled Cassava (Yuca)",
+        "quantity": 1,
+        "volume_ml": 344.68981527011215,
+        "density_g_per_ml": 0.85,
+        "density_source": "fallback",
+        "density_similarity": 0.4297231435775757,
+        "mass_g": 200.0,
+        "calories_per_100g": 130.0,
+        "total_calories": 260.0,
+        "calorie_source": "fallback",
+        "calorie_similarity": 0.4052462577819824,
+        "matched_food": "rice white cooked"
+      },
+      {
+        "food_name": "Stewed Black-Eyed Peas",
+        "quantity": 1,
+        "volume_ml": 716.3571205800722,
+        "density_g_per_ml": 0.75,
+        "density_source": "fallback",
+        "density_similarity": 0.4253222346305847,
+        "mass_g": 200.0,
+        "calories_per_100g": 15.0,
+        "total_calories": 30.0,
+        "calorie_source": "fallback",
+        "calorie_similarity": 0.3968771696090698,
+        "matched_food": "salad mixed greens"
+      },
+      {
+        "food_name": "Spicy Pepper Sauce",
+        "quantity": 1,
+        "volume_ml": 752.9752929140881,
+        "density_g_per_ml": 0.95,
+        "density_source": "fallback",
+        "density_similarity": 0.4233522415161133,
+        "mass_g": 150.0,
+        "calories_per_100g": 131.0,
+        "total_calories": 196.5,
+        "calorie_source": "fallback",
+        "calorie_similarity": 0.4168192148208618,
+        "matched_food": "spaghetti pasta cooked"
+      }
+    ],
+    "summary": {
+      "total_food_volume_ml": 2814.0222287642723,
+      "total_mass_g": 900.0,
+      "total_calories_kcal": 539.0,
+      "num_food_items": 4
+    }
+  },
+  "status": "completed"
+}

@@ -22,14 +22,18 @@ export default function Group2076Logo({
   // Always use calculated height to show full image, ignore provided height if it would crop
   const displayHeight = calculatedHeight;
   
-  // Use Group 2076.png which shows the full logo with "UKcal" text
+  // Use Group2076.png (without space) which shows the full logo with "UKcal" text
+  // Using filename without space to avoid iOS require() issues
   return (
     <View style={[styles.container, { width, height: displayHeight }, style]}>
       <Image
-        source={require('../icons/Group 2076.png')}
+        source={require('../icons/Group2076.png')}
         style={{ width, height: displayHeight }}
         resizeMode="contain"
         onLoad={onLoad}
+        onError={(error) => {
+          console.error('[Group2076Logo] Image load error:', error);
+        }}
       />
     </View>
   );

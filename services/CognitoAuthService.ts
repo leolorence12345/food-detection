@@ -15,6 +15,8 @@ export interface CognitoOTPService {
   verifyEmailOTP(email: string, otp: string): Promise<{ success: boolean; userId?: string }>;
   sendPhoneOTP(phoneNumber: string): Promise<boolean>;
   verifyPhoneOTP(phoneNumber: string, otp: string): Promise<{ success: boolean; userId?: string }>;
+  sendDeleteAccountOTP(email: string): Promise<boolean>;
+  verifyDeleteAccountOTP(email: string, otp: string): Promise<boolean>;
   getCurrentUser(): CognitoUser | null;
   logout(): Promise<void>;
 }
@@ -200,6 +202,72 @@ class CognitoOTPService implements CognitoOTPService {
     } catch (error: any) {
       console.error('[Cognito Auth] ❌ Failed to verify SMS OTP:', error);
       return { success: false };
+    }
+  }
+
+  async sendDeleteAccountOTP(email: string): Promise<boolean> {
+    try {
+      console.log('═══════════════════════════════════════════');
+      console.log('📧 SENDING DELETE ACCOUNT OTP');
+      console.log('═══════════════════════════════════════════');
+      console.log('Email:', email);
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      await AsyncStorage.setItem(`delete_otp_${email}`, otp);
+      await AsyncStorage.setItem(`delete_otp_time_${email}`, Date.now().toString());
+
+      console.log('');
+      console.log('🔑 YOUR DELETE ACCOUNT OTP:', otp);
+      console.log('⏰ Valid for 5 minutes');
+      console.log('═══════════════════════════════════════════');
+
+      Alert.alert(
+        '🔑 Test OTP Code (Delete Account)',
+        `Your OTP is: ${otp}\n\nIn production, this would be sent via email.`,
+        [{ text: 'OK' }]
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return true;
+    } catch (error: any) {
+      console.error('[Cognito Auth] ❌ Failed to send delete account OTP:', error);
+      return false;
+    }
+  }
+
+  async verifyDeleteAccountOTP(email: string, otp: string): Promise<boolean> {
+    try {
+      console.log('═══════════════════════════════════════════');
+      console.log('🔍 VERIFYING DELETE ACCOUNT OTP');
+      console.log('═══════════════════════════════════════════');
+
+      const storedOTP = await AsyncStorage.getItem(`delete_otp_${email}`);
+      const otpTime = await AsyncStorage.getItem(`delete_otp_time_${email}`);
+
+      if (!storedOTP || !otpTime) {
+        console.log('❌ No OTP found for this email');
+        return false;
+      }
+
+      const timeElapsed = Date.now() - parseInt(otpTime);
+      const fiveMinutes = 5 * 60 * 1000;
+      if (timeElapsed > fiveMinutes) {
+        console.log('❌ OTP expired (older than 5 minutes)');
+        return false;
+      }
+
+      if (storedOTP !== otp) {
+        console.log('❌ OTP mismatch');
+        return false;
+      }
+
+      await AsyncStorage.removeItem(`delete_otp_${email}`);
+      await AsyncStorage.removeItem(`delete_otp_time_${email}`);
+      console.log('✅ Delete account OTP verified');
+      return true;
+    } catch (error: any) {
+      console.error('[Cognito Auth] ❌ Failed to verify delete account OTP:', error);
+      return false;
     }
   }
 

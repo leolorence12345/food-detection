@@ -5,18 +5,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface BottomButtonContainerProps {
   children: ReactNode;
   paddingHorizontal?: number;
+  /** When true, use minimal bottom padding (e.g. when keyboard is visible) so the button sits just above the keyboard */
+  compactBottom?: boolean;
+  /** When set (e.g. to keyboard height), position the bar this many px from the bottom so it sits on top of the keyboard */
+  keyboardHeight?: number;
 }
 
 /**
  * Container for buttons that should be fixed at the bottom
  * and stay below the keyboard (doesn't move above keyboard)
  */
-const BottomButtonContainer: React.FC<BottomButtonContainerProps> = ({ children, paddingHorizontal = 32 }) => {
+const BottomButtonContainer: React.FC<BottomButtonContainerProps> = ({
+  children,
+  paddingHorizontal = 32,
+  compactBottom = false,
+  keyboardHeight = 0,
+}) => {
   const insets = useSafeAreaInsets();
+  // When keyboard is visible, use minimal padding so button sits just above keyboard
+  const bottomPadding = compactBottom ? 0 : Math.max(insets.bottom, 16);
+  const topPadding = compactBottom ? 0 : 16;
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight : 0;
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 16), paddingHorizontal }]}>
+    <View style={[styles.container, compactBottom && styles.containerCompact, bottomPosition > 0 && { bottom: bottomPosition }]}>
+      <View
+        style={[
+          styles.buttonContainer,
+          { paddingBottom: bottomPadding, paddingTop: topPadding, paddingHorizontal },
+        ]}
+      >
         {children}
       </View>
     </View>
@@ -40,6 +58,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+  },
+  containerCompact: {
+    borderTopWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonContainer: {
     paddingTop: 16,

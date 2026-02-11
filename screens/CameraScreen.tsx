@@ -9,8 +9,10 @@ import {
   StatusBar,
   useWindowDimensions,
   Alert,
+  Linking,
 } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
+import { requestCameraPermissionsAsync } from 'expo-camera';
 import { Video, ResizeMode } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +57,6 @@ export default function CameraScreen() {
     // Load streak from storage
     loadStreak();
   }, []);
-
 
   // Debug: Log flash state changes
   useEffect(() => {
@@ -323,32 +324,67 @@ export default function CameraScreen() {
     setSelectedVideo(null);
   };
 
-  const handleRequestPermissions = async () => {
-    // Request camera permission first
+  // Must be called from a user gesture (tap) so iOS shows the system Allow/Don't Allow dialog
+  const handleRequestCameraPermission = async () => {
+    const status = Camera.getCameraPermissionStatus();
+    if (status === 'denied' || status === 'restricted') {
+      Linking.openSettings();
+      return;
+    }
+    // Try Expo's API first (reliable in Expo dev client for showing system dialog)
+    try {
+      const { status: expoStatus } = await requestCameraPermissionsAsync();
+      if (expoStatus === 'granted') {
+        await requestCameraPermission(); // sync Vision Camera hook state
+        await requestMicPermission();
+        return;
+      }
+    } catch (_) {
+      // fallback to Vision Camera request
+    }
     const cameraGranted = await requestCameraPermission();
-
     if (cameraGranted) {
-      // If camera permission is granted, also request microphone permission
       await requestMicPermission();
     }
   };
 
-  if (hasCameraPermission === null || !device) {
-    // Camera permissions are still loading or device not available
+  if (hasCameraPermission === null) {
+    // Camera permissions are still loading
     return (
-      <View style={styles.container}>
-        <Text style={styles.message}>Loading camera...</Text>
+      <View style={styles.permissionScreenContainer}>
+        <Text style={styles.permissionMessage}>Loading camera...</Text>
       </View>
     );
   }
 
+  // Check if camera device is available (won't be on simulator)
+  const isCameraAvailable = device != null;
+
   if (!hasCameraPermission) {
+    const permissionStatus = Camera.getCameraPermissionStatus();
+    const canAskAgain = permissionStatus === 'not-determined';
+
     return (
-      <View style={styles.container}>
-        <Text style={styles.message}>We need your permission to show the camera</Text>
-        <TouchableOpacity onPress={handleRequestPermissions} style={styles.button}>
-          <Text style={styles.buttonText}>Grant Permission</Text>
+      <View style={styles.permissionScreenContainer}>
+        <Text style={styles.permissionMessage}>
+          {canAskAgain
+            ? 'This app needs camera access to scan food.'
+            : 'Camera access was denied. Enable it in Settings to scan food.'}
+        </Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={handleRequestCameraPermission}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.permissionButtonText}>
+            {canAskAgain ? 'Allow camera access' : 'Open Settings'}
+          </Text>
         </TouchableOpacity>
+        {canAskAgain && (
+          <Text style={styles.permissionHint}>
+            A system dialog will ask you to allow or deny.
+          </Text>
+        )}
       </View>
     );
   }
@@ -378,34 +414,49 @@ export default function CameraScreen() {
         styles.cameraContainer,
         (activeTab === 'photo' || activeTab === 'video') && styles.cameraContainerFull
       ]}>
-        {(activeTab === 'photo' || activeTab === 'video') && device != null && (
+        {(activeTab === 'photo' || activeTab === 'video') && (
           <>
-            <Camera
-              ref={cameraRef}
-              style={styles.camera}
-              device={device}
-              isActive={isCameraActive && !selectedImage && !selectedVideo}
-              photo={true}
-              video={true}
-              audio={true}
-              torch={flashEnabled ? 'on' : 'off'}
-            />
+            {isCameraAvailable ? (
+              <Camera
+                ref={cameraRef}
+                style={styles.camera}
+                device={device}
+                isActive={isCameraActive && !selectedImage && !selectedVideo}
+                photo={true}
+                video={true}
+                audio={true}
+                torch={flashEnabled ? 'on' : 'off'}
+              />
+            ) : (
+              <View style={styles.noCameraContainer}>
+                <Ionicons name="camera-outline" size={64} color="#666" />
+                <Text style={styles.noCameraText}>Camera not available</Text>
+                <Text style={styles.noCameraSubtext}>Use Gallery to select media</Text>
+                <TouchableOpacity style={styles.galleryButton} onPress={pickFromGallery}>
+                  <Ionicons name="images-outline" size={24} color="#FFFFFF" />
+                  <Text style={styles.galleryButtonText}>Open Gallery</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* Top Overlays - Outside CameraView */}
             <View style={[styles.topOverlay, { top: insets.top + 16 }]}>
-              <TouchableOpacity
-                style={styles.flashButton}
-                onPress={() => {
-                  const newFlashState = !flashEnabled;
-                  console.log('[Camera] Toggling torch:', newFlashState);
-                  setFlashEnabled(newFlashState);
-                }}
-              >
-                <Ionicons
-                  name={flashEnabled ? 'flash' : 'flash-off'}
-                  size={24}
-                  color="#FFFFFF"
-                />
-              </TouchableOpacity>
+              {isCameraAvailable && (
+                <TouchableOpacity
+                  style={styles.flashButton}
+                  onPress={() => {
+                    const newFlashState = !flashEnabled;
+                    console.log('[Camera] Toggling torch:', newFlashState);
+                    setFlashEnabled(newFlashState);
+                  }}
+                >
+                  <Ionicons
+                    name={flashEnabled ? 'flash' : 'flash-off'}
+                    size={24}
+                    color="#FFFFFF"
+                  />
+                </TouchableOpacity>
+              )}
+              {!isCameraAvailable && <View />}
 
               <View style={styles.topRightControls}>
                 <TouchableOpacity
@@ -425,13 +476,15 @@ export default function CameraScreen() {
               </View>
             )}
 
-            {/* Camera Frame Indicators */}
-            <View style={styles.frameIndicators}>
-              <View style={[styles.cornerIndicator, styles.topLeft]} />
-              <View style={[styles.cornerIndicator, styles.topRight]} />
-              <View style={[styles.cornerIndicator, styles.bottomLeft]} />
-              <View style={[styles.cornerIndicator, styles.bottomRight]} />
-            </View>
+            {/* Camera Frame Indicators - only when camera is available */}
+            {isCameraAvailable && (
+              <View style={styles.frameIndicators}>
+                <View style={[styles.cornerIndicator, styles.topLeft]} />
+                <View style={[styles.cornerIndicator, styles.topRight]} />
+                <View style={[styles.cornerIndicator, styles.bottomLeft]} />
+                <View style={[styles.cornerIndicator, styles.bottomRight]} />
+              </View>
+            )}
           </>
         )}
 
@@ -496,14 +549,14 @@ export default function CameraScreen() {
             </TouchableOpacity>
           </View>
 
-           {/* Shutter/Record Button */}
-           {activeTab === 'photo' && (
+           {/* Shutter/Record Button - only show when camera is available */}
+           {activeTab === 'photo' && isCameraAvailable && (
              <TouchableOpacity style={styles.shutterButton} onPress={takePhoto}>
                <View style={styles.shutterInner} />
              </TouchableOpacity>
            )}
 
-           {activeTab === 'video' && (
+           {activeTab === 'video' && isCameraAvailable && (
             <TouchableOpacity
               style={[styles.shutterButton, isRecording && styles.recordingButton]}
               onPress={isRecording ? stopRecording : startRecording}
@@ -511,6 +564,13 @@ export default function CameraScreen() {
               <View style={[styles.shutterInner, isRecording && styles.recordingInner]} />
             </TouchableOpacity>
           )}
+          
+           {/* Show gallery prompt when camera not available */}
+           {!isCameraAvailable && (activeTab === 'photo' || activeTab === 'video') && (
+             <TouchableOpacity style={styles.shutterButton} onPress={pickFromGallery}>
+               <Ionicons name="images" size={32} color="#34C759" />
+             </TouchableOpacity>
+           )}
           </View>
         </BlurView>
       }
@@ -927,6 +987,39 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
+  noCameraContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1C1C1E',
+    padding: 20,
+  },
+  noCameraText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noCameraSubtext: {
+    color: '#999',
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  galleryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#34C759',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  galleryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   button: {
     backgroundColor: '#34C759',
     paddingVertical: 16,
@@ -938,5 +1031,38 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  permissionScreenContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  permissionMessage: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#1C1C1E',
+    fontWeight: '500',
+    marginBottom: 24,
+  },
+  permissionButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  permissionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  permissionHint: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#666',
+    marginTop: 20,
+    paddingHorizontal: 16,
   },
 });

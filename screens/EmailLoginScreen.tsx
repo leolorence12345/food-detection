@@ -11,7 +11,7 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { sendOTP } from '../store/slices/authSlice';
@@ -24,6 +24,7 @@ import CustomInput from '../components/CustomInput';
 import BottomButtonContainer from '../components/BottomButtonContainer';
 
 export default function EmailLoginScreen({ navigation }: { navigation: any }) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector((state) => state.auth.isLoading);
@@ -135,7 +136,7 @@ export default function EmailLoginScreen({ navigation }: { navigation: any }) {
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 20}
           >
             <ScrollView 
               style={styles.scrollView}
@@ -160,6 +161,7 @@ export default function EmailLoginScreen({ navigation }: { navigation: any }) {
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
+                    autoCapitalize="none"
                     isDisabled={isLoading}
                   />
                 </View>

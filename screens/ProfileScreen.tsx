@@ -67,7 +67,7 @@ export default function ProfileScreen() {
   };
 
   const handleAddAvatar = () => {
-    navigation.navigate('AddAvatar' as never);
+    (navigation.navigate as any)('AddAvatar', { fromProfile: true });
   };
 
   const handleLogout = async () => {
@@ -106,7 +106,24 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-    navigation.navigate('EditProfileStep1' as never);
+    try {
+      console.log('[Profile] Navigating to EditProfileStep1');
+      console.log('[Profile] Navigation object:', navigation);
+      console.log('[Profile] Navigation type:', typeof navigation);
+      console.log('[Profile] Has navigate method:', typeof navigation?.navigate === 'function');
+      
+      if (navigation && typeof navigation.navigate === 'function') {
+        const result = navigation.navigate('EditProfileStep1' as never);
+        console.log('[Profile] Navigation result:', result);
+      } else {
+        console.error('[Profile] Navigation object is invalid:', navigation);
+        Alert.alert('Error', 'Navigation is not available');
+      }
+    } catch (error) {
+      console.error('[Profile] Error navigating to EditProfileStep1:', error);
+      console.error('[Profile] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      Alert.alert('Navigation Error', `Unable to open edit profile: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
   const handleViewConsent = () => {

@@ -53,6 +53,24 @@ export const awsConfig = {
     // REQUIRED - API Gateway endpoint
     endpoint: 'https://y7z615hzm3.execute-api.us-east-1.amazonaws.com/v1',
   },
+
+  // Delete Account OTP – dedicated service (e.g. separate Cognito or Lambda + API)
+  // When set, the app uses this for delete-account verification emails instead of the sign-in Cognito flow.
+  // Leave enabled: false until you provide the details (like for sign-in).
+  DeleteAccountOTP: {
+    enabled: false,
+    // Option A: REST API (Lambda + API Gateway) – provide base URL and optional API key
+    apiEndpoint: '', // e.g. 'https://xxxx.execute-api.us-east-1.amazonaws.com/prod'
+    apiKey: '',     // optional, if your API requires a key header
+    // Paths (optional – defaults: /send-delete-otp and /verify-delete-otp)
+    sendPath: '/send-delete-otp',
+    verifyPath: '/verify-delete-otp',
+
+    // Option B: Separate Cognito User Pool for delete-account only (if you use a second pool)
+    // userPoolId: '',
+    // userPoolClientId: '',
+    // region: 'us-east-1',
+  },
 };
 
 // Instructions to get these values:

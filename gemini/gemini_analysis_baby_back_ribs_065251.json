@@ -1,0 +1,149 @@
+{
+  "image_path": "food101_images/baby_back_ribs/baby_back_ribs_065251.jpg",
+  "image_name": "baby_back_ribs_065251.jpg",
+  "raw_response": "```json\n{\n  \"main_food_item\": \"BBQ Pork Ribs with Sides\",\n  \"cuisine_type\": \"American Barbecue\",\n  \"cooking_method\": \"Slow-cooked (likely smoked or baked), grilled/broiled, and glazed with BBQ sauce.\",\n  \"visible_ingredients\": [\n    {\n      \"name\": \"Pork Ribs\",\n      \"bounding_box\": [236, 155, 511, 380],\n      \"estimated_quantity\": \"1 full rack (approximately 10-12 bones)\"\n    },\n    {\n      \"name\": \"BBQ Sauce (on ribs)\",\n      \"bounding_box\": [236, 155, 511, 380],\n      \"estimated_quantity\": \"Generous coating\"\n    },\n    {\n      \"name\": \"French Fries / Potato Wedges\",\n      \"bounding_box\": [0, 192, 328, 380],\n      \"estimated_quantity\": \"Medium serving (approx. 150-200g)\"\n    },\n    {\n      \"name\": \"Corn on the Cob\",\n      \"bounding_box\": [291, 142, 497, 201],\n      \"estimated_quantity\": \"1 ear\"\n    },\n    {\n      \"name\": \"Side Sauce (in metal bowl)\",\n      \"bounding_box\": [122, 13, 230, 90],\n      \"estimated_quantity\": \"Approximately 1/4 cup (60ml)\"\n    },\n    {\n      \"name\": \"Lemon Wedge (in small dish)\",\n      \"bounding_box\": [472, 33, 508, 68],\n      \"estimated_quantity\": \"1 small wedge\"\n    },\n    {\n      \"name\": \"White Flakes/Condiment (in small dish)\",\n      \"bounding_box\": [383, 22, 432, 69],\n      \"estimated_quantity\": \"Small pinch\"\n    },\n    {\n      \"name\": \"Dark Flakes/Condiment (in small dish)\",\n      \"bounding_box\": [427, 22, 481, 69],\n      \"estimated_quantity\": \"Small pinch\"\n    },\n    {\n      \"name\": \"Knife (utensil)\",\n      \"bounding_box\": [393, 148, 482, 178],\n      \"estimated_quantity\": \"1\"\n    },\n    {\n      \"name\": \"White Ceramic Plate\",\n      \"bounding_box\": [0, 99, 511, 380],\n      \"estimated_quantity\": \"1\"\n    }\n  ],\n  \"ingredient_breakdown\": [\n    \"Pork Ribs (St. Louis style or Baby Back)\",\n    \"BBQ Sauce (likely tomato-based): Tomatoes (ketchup/paste), vinegar (apple cider/white), sugar (brown sugar/molasses/honey), spices (paprika, garlic powder, onion powder, chili powder, black pepper, cayenne pepper, cumin), salt, Worcestershire sauce, liquid smoke (optional), mustard, soy sauce (optional), onion, garlic.\",\n    \"Potatoes (for fries/wedges)\",\n    \"Cooking oil (for frying potatoes): Vegetable oil, canola oil, peanut oil.\",\n    \"Salt (for fries and corn)\",\n    \"Corn on the Cob\",\n    \"Butter (for corn, optional, not visible but commonly served)\",\n    \"Lemon (for wedge, condiment)\",\n    \"Condiments in small dishes (speculative): Possibly minced garlic, chili flakes, or a spice blend for the white and dark flakes.\"\n  ],\n  \"nutritional_info\": {\n    \"calories\": \"Estimated 1200-1800 kcal (for a large serving, varies greatly by portion size and sauce/oil content)\",\n    \"macros\": {\n      \"protein\": \"Approx. 70-100g (from ribs)\",\n      \"carbohydrates\": \"Approx. 100-150g (from fries, corn, sugar in BBQ sauce)\",\n      \"fats\": \"Approx. 80-120g (from ribs, fried potatoes, cooking oil)\",\n      \"saturated_fat\": \"Approx. 30-50g\"\n    },\n    \"micronutrients\": {\n      \"vitamins\": \"Vitamin B complex (B1, B2, B3, B6, B12 from pork), Vitamin C (from corn, lemon, tomatoes), Vitamin K (from potatoes, corn)\",\n      \"minerals\": \"Iron, Zinc, Phosphorus (from pork), Potassium (from potatoes, corn), Magnesium, Manganese\"\n    },\n    \"fiber_content\": \"Approx. 10-15g (from potatoes, corn, some sauce ingredients)\"\n  },\n  \"allergens\": [\n    \"Pork (meat)\",\n    \"Soy (potentially in Worcestershire sauce or some BBQ sauces)\",\n    \"Gluten (potentially in Worcestershire sauce, some BBQ sauce thickeners, cross-contamination if fries are fried with gluten-containing items)\",\n    \"Sulfites (potentially in vinegar or wine in BBQ sauce)\",\n    \"Corn (if corn allergy)\"\n  ],\n  \"dietary_tags\": [\n    \"Non-Vegetarian\",\n    \"Non-Vegan\",\n    \"Not typically Gluten-Free (due to sauce and shared fryers for fries)\"\n  ],\n  \"additional_notes\": \"This is a rich and flavorful meal, typical of American comfort food and barbecue joints. It is relatively high in calories, saturated fat, sodium, and sugar, primarily due to the fatty cut of pork, the frying of potatoes, and the sugary BBQ sauce. For a healthier option, one could opt for leaner cuts, grilled or baked potatoes instead of fried, and a sugar-free or low-sugar BBQ sauce. The corn on the cob adds a good source of fiber and vitamins. The small condiment dishes suggest customizable flavoring options, which might include fresh garlic, chili flakes, or other spices to enhance the taste.\"\n}\n```",
+  "parsed": true,
+  "main_food_item": "BBQ Pork Ribs with Sides",
+  "cuisine_type": "American Barbecue",
+  "cooking_method": "Slow-cooked (likely smoked or baked), grilled/broiled, and glazed with BBQ sauce.",
+  "visible_ingredients": [
+    {
+      "name": "Pork Ribs",
+      "bounding_box": [
+        236,
+        155,
+        511,
+        380
+      ],
+      "estimated_quantity": "1 full rack (approximately 10-12 bones)"
+    },
+    {
+      "name": "BBQ Sauce (on ribs)",
+      "bounding_box": [
+        236,
+        155,
+        511,
+        380
+      ],
+      "estimated_quantity": "Generous coating"
+    },
+    {
+      "name": "French Fries / Potato Wedges",
+      "bounding_box": [
+        0,
+        192,
+        328,
+        380
+      ],
+      "estimated_quantity": "Medium serving (approx. 150-200g)"
+    },
+    {
+      "name": "Corn on the Cob",
+      "bounding_box": [
+        291,
+        142,
+        497,
+        201
+      ],
+      "estimated_quantity": "1 ear"
+    },
+    {
+      "name": "Side Sauce (in metal bowl)",
+      "bounding_box": [
+        122,
+        13,
+        230,
+        90
+      ],
+      "estimated_quantity": "Approximately 1/4 cup (60ml)"
+    },
+    {
+      "name": "Lemon Wedge (in small dish)",
+      "bounding_box": [
+        472,
+        33,
+        508,
+        68
+      ],
+      "estimated_quantity": "1 small wedge"
+    },
+    {
+      "name": "White Flakes/Condiment (in small dish)",
+      "bounding_box": [
+        383,
+        22,
+        432,
+        69
+      ],
+      "estimated_quantity": "Small pinch"
+    },
+    {
+      "name": "Dark Flakes/Condiment (in small dish)",
+      "bounding_box": [
+        427,
+        22,
+        481,
+        69
+      ],
+      "estimated_quantity": "Small pinch"
+    },
+    {
+      "name": "Knife (utensil)",
+      "bounding_box": [
+        393,
+        148,
+        482,
+        178
+      ],
+      "estimated_quantity": "1"
+    },
+    {
+      "name": "White Ceramic Plate",
+      "bounding_box": [
+        0,
+        99,
+        511,
+        380
+      ],
+      "estimated_quantity": "1"
+    }
+  ],
+  "ingredient_breakdown": [
+    "Pork Ribs (St. Louis style or Baby Back)",
+    "BBQ Sauce (likely tomato-based): Tomatoes (ketchup/paste), vinegar (apple cider/white), sugar (brown sugar/molasses/honey), spices (paprika, garlic powder, onion powder, chili powder, black pepper, cayenne pepper, cumin), salt, Worcestershire sauce, liquid smoke (optional), mustard, soy sauce (optional), onion, garlic.",
+    "Potatoes (for fries/wedges)",
+    "Cooking oil (for frying potatoes): Vegetable oil, canola oil, peanut oil.",
+    "Salt (for fries and corn)",
+    "Corn on the Cob",
+    "Butter (for corn, optional, not visible but commonly served)",
+    "Lemon (for wedge, condiment)",
+    "Condiments in small dishes (speculative): Possibly minced garlic, chili flakes, or a spice blend for the white and dark flakes."
+  ],
+  "nutritional_info": {
+    "calories": "Estimated 1200-1800 kcal (for a large serving, varies greatly by portion size and sauce/oil content)",
+    "macros": {
+      "protein": "Approx. 70-100g (from ribs)",
+      "carbohydrates": "Approx. 100-150g (from fries, corn, sugar in BBQ sauce)",
+      "fats": "Approx. 80-120g (from ribs, fried potatoes, cooking oil)",
+      "saturated_fat": "Approx. 30-50g"
+    },
+    "micronutrients": {
+      "vitamins": "Vitamin B complex (B1, B2, B3, B6, B12 from pork), Vitamin C (from corn, lemon, tomatoes), Vitamin K (from potatoes, corn)",
+      "minerals": "Iron, Zinc, Phosphorus (from pork), Potassium (from potatoes, corn), Magnesium, Manganese"
+    },
+    "fiber_content": "Approx. 10-15g (from potatoes, corn, some sauce ingredients)"
+  },
+  "allergens": [
+    "Pork (meat)",
+    "Soy (potentially in Worcestershire sauce or some BBQ sauces)",
+    "Gluten (potentially in Worcestershire sauce, some BBQ sauce thickeners, cross-contamination if fries are fried with gluten-containing items)",
+    "Sulfites (potentially in vinegar or wine in BBQ sauce)",
+    "Corn (if corn allergy)"
+  ],
+  "dietary_tags": [
+    "Non-Vegetarian",
+    "Non-Vegan",
+    "Not typically Gluten-Free (due to sauce and shared fryers for fries)"
+  ],
+  "additional_notes": "This is a rich and flavorful meal, typical of American comfort food and barbecue joints. It is relatively high in calories, saturated fat, sodium, and sugar, primarily due to the fatty cut of pork, the frying of potatoes, and the sugary BBQ sauce. For a healthier option, one could opt for leaner cuts, grilled or baked potatoes instead of fried, and a sugar-free or low-sugar BBQ sauce. The corn on the cob adds a good source of fiber and vitamins. The small condiment dishes suggest customizable flavoring options, which might include fresh garlic, chili flakes, or other spices to enhance the taste."
+}

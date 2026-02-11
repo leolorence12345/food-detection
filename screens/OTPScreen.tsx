@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login } from '../store/slices/authSlice';
 import VectorBackButton from '../components/VectorBackButton';
@@ -22,6 +23,7 @@ import ScreenLoader from '../components/ScreenLoader';
 import { useImageLoadTracker } from '../hooks/useImageLoadTracker';
 
 export default function OTPScreen({ navigation, route }: { navigation: any; route: any }) {
+  const insets = useSafeAreaInsets();
   const { email } = route.params;
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [generatedOTP, setGeneratedOTP] = useState<string>('');
@@ -110,7 +112,7 @@ export default function OTPScreen({ navigation, route }: { navigation: any; rout
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 20}
       >
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         <ScrollView 

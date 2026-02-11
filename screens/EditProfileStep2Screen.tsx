@@ -13,8 +13,8 @@ import {
   Keyboard,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,8 +42,10 @@ interface MultiSelectState {
   selectedList: MultiSelectItem[];
 }
 
-export default function EditProfileStep2Screen({ navigation: navigationProp }: { navigation?: any }) {
-  const navigation = navigationProp || useNavigation();
+export default function EditProfileStep2Screen() {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const route = useRoute();
   const dispatch = useAppDispatch();
   const profileState = useAppSelector((state) => state.profile);
   const [menuFile, setMenuFile] = useState<any>(null);
@@ -139,10 +141,37 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
   });
 
   // Load profile data from Redux when screen is focused
+  // Only load if profile is not already loaded to avoid triggering AppLoader
   useFocusEffect(
     useCallback(() => {
-      dispatch(loadProfile());
-    }, [dispatch])
+      // Only load profile if it's not already loaded to prevent App from showing AppLoader
+      if (!profileState.businessProfile && !profileState.isLoading) {
+        console.log('[EditProfileStep2] Profile not loaded, loading now...');
+        dispatch(loadProfile());
+      } else {
+        console.log('[EditProfileStep2] Profile already loaded, skipping loadProfile');
+      }
+    }, [dispatch, profileState.businessProfile, profileState.isLoading])
+  );
+
+  // Helper: parse profile string (single or comma-separated) into value + selectedList for MultiSelect
+  const parseProfileMultiSelect = useCallback(
+    (profileStr: string | undefined, list: MultiSelectItem[]): { value: string; selectedList: MultiSelectItem[] } => {
+      if (!profileStr || typeof profileStr !== 'string' || list.length === 0) {
+        return { value: '', selectedList: [] };
+      }
+      const parts = profileStr.split(',').map((s) => s.trim()).filter(Boolean);
+      const selectedList: MultiSelectItem[] = [];
+      for (const part of parts) {
+        const found = list.find((item) => item.value.trim() === part || item.value === part);
+        if (found && !selectedList.some((s) => s._id === found._id)) {
+          selectedList.push(found);
+        }
+      }
+      const value = selectedList.map((s) => s.value).join(', ');
+      return { value, selectedList };
+    },
+    []
   );
 
   // Load Step 1 data and existing profile data
@@ -185,70 +214,36 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
               console.warn('[EditProfileStep2] Invalid menuFile structure from profile:', loadedMenuFile);
             }
           }
-          if (profile.businessCategory) {
-            const catItem = businessCategory.list.find(c => c.value === profile.businessCategory);
-            if (catItem) {
-              setBusinessCategory({
-                ...businessCategory,
-                value: profile.businessCategory,
-                selectedList: [catItem],
-              });
-            }
+
+          // Use helper so single and comma-separated values load correctly
+          const cat = parseProfileMultiSelect(profile.businessCategory, businessCategory.list);
+          if (cat.selectedList.length > 0 || profile.businessCategory === '') {
+            setBusinessCategory((prev) => ({ ...prev, value: cat.value, selectedList: cat.selectedList }));
           }
 
-          if (profile.cuisineType) {
-            const cuisineItem = cuisineType.list.find(c => c.value === profile.cuisineType);
-            if (cuisineItem) {
-              setCuisineType({
-                ...cuisineType,
-                value: profile.cuisineType,
-                selectedList: [cuisineItem],
-              });
-            }
+          const cuisine = parseProfileMultiSelect(profile.cuisineType, cuisineType.list);
+          if (cuisine.selectedList.length > 0 || profile.cuisineType === '') {
+            setCuisineType((prev) => ({ ...prev, value: cuisine.value, selectedList: cuisine.selectedList }));
           }
 
-          if (profile.primaryServingStyle) {
-            const styleItem = primaryServingStyle.list.find(s => s.value === profile.primaryServingStyle);
-            if (styleItem) {
-              setPrimaryServingStyle({
-                ...primaryServingStyle,
-                value: profile.primaryServingStyle,
-                selectedList: [styleItem],
-              });
-            }
+          const style = parseProfileMultiSelect(profile.primaryServingStyle, primaryServingStyle.list);
+          if (style.selectedList.length > 0 || profile.primaryServingStyle === '') {
+            setPrimaryServingStyle((prev) => ({ ...prev, value: style.value, selectedList: style.selectedList }));
           }
 
-          if (profile.averageDishPrice) {
-            const priceItem = averageDishPrice.list.find(p => p.value === profile.averageDishPrice);
-            if (priceItem) {
-              setAverageDishPrice({
-                ...averageDishPrice,
-                value: profile.averageDishPrice,
-                selectedList: [priceItem],
-              });
-            }
+          const price = parseProfileMultiSelect(profile.averageDishPrice, averageDishPrice.list);
+          if (price.selectedList.length > 0 || profile.averageDishPrice === '') {
+            setAverageDishPrice((prev) => ({ ...prev, value: price.value, selectedList: price.selectedList }));
           }
 
-          if (profile.standardMealSize) {
-            const sizeItem = standardMealSize.list.find(s => s.value === profile.standardMealSize);
-            if (sizeItem) {
-              setStandardMealSize({
-                ...standardMealSize,
-                value: profile.standardMealSize,
-                selectedList: [sizeItem],
-              });
-            }
+          const mealSize = parseProfileMultiSelect(profile.standardMealSize, standardMealSize.list);
+          if (mealSize.selectedList.length > 0 || profile.standardMealSize === '') {
+            setStandardMealSize((prev) => ({ ...prev, value: mealSize.value, selectedList: mealSize.selectedList }));
           }
 
-          if (profile.businessSize) {
-            const bizSizeItem = businessSize.list.find(s => s.value === profile.businessSize);
-            if (bizSizeItem) {
-              setBusinessSize({
-                ...businessSize,
-                value: profile.businessSize,
-                selectedList: [bizSizeItem],
-              });
-            }
+          const bizSize = parseProfileMultiSelect(profile.businessSize, businessSize.list);
+          if (bizSize.selectedList.length > 0 || profile.businessSize === '') {
+            setBusinessSize((prev) => ({ ...prev, value: bizSize.value, selectedList: bizSize.selectedList }));
           }
         }
       } catch (error) {
@@ -638,10 +633,14 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
 
   // Memoize all MultiSelect handlers to prevent re-renders during scroll
   const handleBusinessCategoryChange = useCallback((value: any) => {
+    // Single-select: only keep the most recently selected item
+    const singleItem = value.selectedList && value.selectedList.length > 0 
+      ? [value.selectedList[value.selectedList.length - 1]] 
+      : [];
     setBusinessCategory((prev) => ({
       ...prev,
-      value: value.text,
-      selectedList: value.selectedList,
+      value: singleItem.length > 0 ? singleItem[0].value : '',
+      selectedList: singleItem,
     }));
   }, []);
 
@@ -662,10 +661,14 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
   }, []);
 
   const handleAverageDishPriceChange = useCallback((value: any) => {
+    // Single-select: only keep the most recently selected item
+    const singleItem = value.selectedList && value.selectedList.length > 0 
+      ? [value.selectedList[value.selectedList.length - 1]] 
+      : [];
     setAverageDishPrice((prev) => ({
       ...prev,
-      value: value.text,
-      selectedList: value.selectedList,
+      value: singleItem.length > 0 ? singleItem[0].value : '',
+      selectedList: singleItem,
     }));
   }, []);
 
@@ -678,10 +681,14 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
   }, []);
 
   const handleBusinessSizeChange = useCallback((value: any) => {
+    // Single-select: only keep the most recently selected item
+    const singleItem = value.selectedList && value.selectedList.length > 0 
+      ? [value.selectedList[value.selectedList.length - 1]] 
+      : [];
     setBusinessSize((prev) => ({
       ...prev,
-      value: value.text,
-      selectedList: value.selectedList,
+      value: singleItem.length > 0 ? singleItem[0].value : '',
+      selectedList: singleItem,
     }));
   }, []);
 
@@ -750,6 +757,7 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
               {/* Business Category */}
               <View style={styles.inputWrapper}>
                 <MultiSelect
+                  key={`business-category-${businessCategory.selectedList.length > 0 ? businessCategory.selectedList[0]._id : 'none'}`}
                   label="Business Category"
                   value={businessCategory.value}
                   onSelection={handleBusinessCategoryChange}
@@ -767,7 +775,7 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
                   onSelection={handleCuisineTypeChange}
                   arrayList={cuisineType.list}
                   selectedArrayList={cuisineType.selectedList}
-                  multiEnable={false}
+                  multiEnable={true}
                 />
               </View>
 
@@ -779,13 +787,14 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
                   onSelection={handlePrimaryServingStyleChange}
                   arrayList={primaryServingStyle.list}
                   selectedArrayList={primaryServingStyle.selectedList}
-                  multiEnable={false}
+                  multiEnable={true}
                 />
               </View>
 
               {/* Average Dish Price */}
               <View style={styles.inputWrapper}>
                 <MultiSelect
+                  key={`average-dish-price-${averageDishPrice.selectedList.length > 0 ? averageDishPrice.selectedList[0]._id : 'none'}`}
                   label="Average Dish Price"
                   value={averageDishPrice.value}
                   onSelection={handleAverageDishPriceChange}
@@ -803,13 +812,14 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
                   onSelection={handleStandardMealSizeChange}
                   arrayList={standardMealSize.list}
                   selectedArrayList={standardMealSize.selectedList}
-                  multiEnable={false}
+                  multiEnable={true}
                 />
               </View>
 
               {/* Business Size */}
               <View style={styles.inputWrapper}>
                 <MultiSelect
+                  key={`business-size-${businessSize.selectedList.length > 0 ? businessSize.selectedList[0]._id : 'none'}`}
                   label="Business Size"
                   value={businessSize.value}
                   onSelection={handleBusinessSizeChange}
@@ -841,7 +851,7 @@ export default function EditProfileStep2Screen({ navigation: navigationProp }: {
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.select({ ios: 0, default: 0 })}
+          keyboardVerticalOffset={insets.top}
           enabled={true}
         >
           {Content}

@@ -1,0 +1,505 @@
+{
+  "job_id": "clip-f3cf629e",
+  "image_path": "/Users/leo/FoodProject/food-detection/istockphoto-2157436773-612x612.webp",
+  "detection": {
+    "num_objects": 61,
+    "num_matched": 61
+  },
+  "nutrition": {
+    "items": [
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 41.16346290829824,
+        "total_calories": 67.9197137986921,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2478249967098236
+      },
+      {
+        "name": "bread white",
+        "food_name": "bread white",
+        "volume_ml": 6.169332957651932,
+        "total_calories": 4.087183084444405,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2518652677536011
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 6.700671554426663,
+        "total_calories": 11.056108064803993,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.24527662992477417
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 2.874128610128537,
+        "total_calories": 0.15089175203174818,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.23940294981002808
+      },
+      {
+        "name": "bread white",
+        "food_name": "bread white",
+        "volume_ml": 5.9296640937100165,
+        "total_calories": 3.928402462082886,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.251403272151947
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 10.107837892428506,
+        "total_calories": 6.696442603733885,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2650916278362274
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 4.7047911083791405,
+        "total_calories": 0.2470015331899049,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.24875663220882416
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 36.81640625,
+        "total_calories": 60.7470703125,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.24318645894527435
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 13.8125,
+        "total_calories": 22.790625,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2660207450389862
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 7.4502069340087465,
+        "total_calories": 4.935762093780794,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.25881102681159973
+      },
+      {
+        "name": "soup broth",
+        "food_name": "unknown",
+        "volume_ml": 63.471533801406636,
+        "total_calories": 95.20730070210995,
+        "calories_per_100g": 150.0,
+        "similarity_score": 0.25434669852256775
+      },
+      {
+        "name": "meat beef ground",
+        "food_name": "ground beef cooked",
+        "volume_ml": 38.47239274566527,
+        "total_calories": 100.99003095737133,
+        "calories_per_100g": 250.0,
+        "similarity_score": 0.2401231974363327
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 31.452681424561888,
+        "total_calories": 1.6512657747894992,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2730045020580292
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 6.000396912684663,
+        "total_calories": 0.31502083791594476,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2743520736694336
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 3.9621194783830993,
+        "total_calories": 6.537497139332114,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2561817467212677
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 9.172262556967334,
+        "total_calories": 0.48154378424078503,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.25767990946769714
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 69.46875,
+        "total_calories": 46.023046875,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2559141218662262
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 36.07107537332923,
+        "total_calories": 59.51727436599323,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2552618980407715
+      },
+      {
+        "name": "bread white",
+        "food_name": "bread white",
+        "volume_ml": 29.859375,
+        "total_calories": 19.7818359375,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.25845277309417725
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 18.71942994114942,
+        "total_calories": 23.296330561760453,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.25909116864204407
+      },
+      {
+        "name": "potato",
+        "food_name": "potato cooked",
+        "volume_ml": 5.471518300124451,
+        "total_calories": 3.1598018183218706,
+        "calories_per_100g": 77.0,
+        "similarity_score": 0.25957947969436646
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 21.0472133976873,
+        "total_calories": 34.72790210618405,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2662419378757477
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 36.08930898830294,
+        "total_calories": 44.91314503594301,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.2946915924549103
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 20.845027299947105,
+        "total_calories": 25.941636474784175,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.27821677923202515
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 13.444625281263143,
+        "total_calories": 22.183631714084186,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.26775404810905457
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 6.64848096203059,
+        "total_calories": 4.404618637345266,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2536754608154297
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 7.659141354379244,
+        "total_calories": 0.40210492110491036,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.27419281005859375
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 44.73828125,
+        "total_calories": 55.676791015625,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.27524664998054504
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 9.566529627190903,
+        "total_calories": 6.337825878013973,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2775046229362488
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 5.486339991446583,
+        "total_calories": 9.052460985886862,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2619555592536926
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 11.123903564759535,
+        "total_calories": 18.354440881853233,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2599332630634308
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 6.274512903182767,
+        "total_calories": 10.352946290251566,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.255034863948822
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 5.691466704010963,
+        "total_calories": 9.39092006161809,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.25364500284194946
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 49.43232125986832,
+        "total_calories": 61.518523807906114,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.2619648575782776
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 14.701171875,
+        "total_calories": 0.7718115234374999,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2567214071750641
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 26.55859375,
+        "total_calories": 43.821679687499994,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.26512080430984497
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 43.73169879952911,
+        "total_calories": 54.42409915601398,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.26000097393989563
+      },
+      {
+        "name": "fish",
+        "food_name": "unknown",
+        "volume_ml": 4.3731791389291175,
+        "total_calories": 6.88775714381336,
+        "calories_per_100g": 150.0,
+        "similarity_score": 0.25203806161880493
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 7.299658432602884,
+        "total_calories": 12.04443641379476,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2383531630039215
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 38.80898847256322,
+        "total_calories": 25.710954863073134,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2842971384525299
+      },
+      {
+        "name": "meat beef ground",
+        "food_name": "ground beef cooked",
+        "volume_ml": 51.8349609375,
+        "total_calories": 136.0667724609375,
+        "calories_per_100g": 250.0,
+        "similarity_score": 0.20825856924057007
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 330.408203125,
+        "total_calories": 17.3464306640625,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2678252160549164
+      },
+      {
+        "name": "ground beef cooked",
+        "food_name": "ground beef cooked",
+        "volume_ml": 1000.0,
+        "total_calories": 2625.0,
+        "calories_per_100g": 250.0,
+        "similarity_score": 0.24797572195529938
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 268.78515625,
+        "total_calories": 178.070166015625,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2626625895500183
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 52.4087890625,
+        "total_calories": 2.7514614257812497,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2692021429538727
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 11.384278946643462,
+        "total_calories": 0.5976746446987817,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.24706654250621796
+      },
+      {
+        "name": "bread white",
+        "food_name": "bread white",
+        "volume_ml": 649.0859375,
+        "total_calories": 430.01943359375,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.25871431827545166
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 4.3595703125,
+        "total_calories": 2.88821533203125,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2507258355617523
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 6.742511733609719,
+        "total_calories": 0.3539818660145102,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.27987658977508545
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 79.091796875,
+        "total_calories": 98.4297412109375,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.2764643728733063
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 19.974791340529922,
+        "total_calories": 1.0486765453778208,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.27036210894584656
+      },
+      {
+        "name": "fish",
+        "food_name": "unknown",
+        "volume_ml": 28.962847723625607,
+        "total_calories": 45.61648516471033,
+        "calories_per_100g": 150.0,
+        "similarity_score": 0.2354413866996765
+      },
+      {
+        "name": "spaghetti pasta noodles",
+        "food_name": "spaghetti pasta cooked",
+        "volume_ml": 45.56490601040423,
+        "total_calories": 56.70552552994806,
+        "calories_per_100g": 131.0,
+        "similarity_score": 0.2661464214324951
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 12.090258570970045,
+        "total_calories": 0.6347385749759273,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.27553439140319824
+      },
+      {
+        "name": "salad lettuce greens vegetables",
+        "food_name": "salad mixed greens",
+        "volume_ml": 8.064346807776012,
+        "total_calories": 0.42337820740824056,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2509962022304535
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 21.251953125,
+        "total_calories": 14.0794189453125,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.25844699144363403
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 43.0625,
+        "total_calories": 71.053125,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2622550427913666
+      },
+      {
+        "name": "bread",
+        "food_name": "bread white",
+        "volume_ml": 15.869140625,
+        "total_calories": 10.5133056640625,
+        "calories_per_100g": 265.0,
+        "similarity_score": 0.2657180726528168
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 36.784982807235764,
+        "total_calories": 60.69522163193901,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2703630030155182
+      },
+      {
+        "name": "chicken meat",
+        "food_name": "chicken breast cooked",
+        "volume_ml": 9.793735989369452,
+        "total_calories": 16.159664382459596,
+        "calories_per_100g": 165.0,
+        "similarity_score": 0.2580837607383728
+      },
+      {
+        "name": "lettuce",
+        "food_name": "lettuce",
+        "volume_ml": 9.804258597898299,
+        "total_calories": 0.5147235763896607,
+        "calories_per_100g": 15.0,
+        "similarity_score": 0.2929854393005371
+      }
+    ],
+    "summary": {
+      "num_food_items": 61,
+      "total_calories_kcal": 4755.4,
+      "total_food_volume_ml": 3526.7
+    }
+  }
+}

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
   Image,
   StatusBar,
   KeyboardAvoidingView,
@@ -21,48 +21,87 @@ import BottomButtonContainer from '../components/BottomButtonContainer';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setAvatar, updateProfileFields, loadProfile } from '../store/slices/profileSlice';
 import { avatarList, Avatar } from '../constants/avatarConstants';
-import { userService } from '../services/UserService';
 
 export default function AddAvatarScreen() {
-  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useAppDispatch();
   const profileState = useAppSelector((state) => state.profile);
-  const insets = useSafeAreaInsets();
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
-  const isFromBusinessProfile = route.params?.fromBusinessProfile === true;
+  
+  // Hermes-safe param reading - never mutate route.params
+  const { fromBusinessProfile = false, fromProfile = false, fromEditProfile = false } = 
+    (route.params ?? {}) as { 
+      fromBusinessProfile?: boolean; 
+      fromProfile?: boolean; 
+      fromEditProfile?: boolean;
+    };
+  const isFromBusinessProfile = fromBusinessProfile === true;
   
   // Calculate bottom padding for FlatList to account for button container
-  // Button height (56) + container padding top (16) + container padding bottom (max(insets.bottom, 16)) + border (1)
-  const buttonContainerHeight = 56 + 16 + Math.max(insets.bottom, 16) + 1;
+  // Button height (56) + container padding top (16) + container padding bottom (16) + border (1)
+  const buttonContainerHeight = 56 + 16 + 16 + 1;
 
+  // Load avatar on mount
   useEffect(() => {
+    let isMounted = true;
+    
     const loadCurrentAvatar = async () => {
-      if (isFromBusinessProfile) {
-        // Load from temporary step1 data
-        try {
-          const savedData = await AsyncStorage.getItem('business_profile_step1');
-          if (savedData) {
-            const data = JSON.parse(savedData);
-            if (data.avatar) {
-              setSelectedAvatar(data.avatar);
+      try {
+        if (isFromBusinessProfile) {
+          // Load from temporary step1 data
+          try {
+            const savedData = await AsyncStorage.getItem('business_profile_step1');
+            if (savedData && isMounted) {
+              const data = JSON.parse(savedData);
+              if (data.avatar) {
+                setSelectedAvatar(data.avatar);
+              }
+            }
+          } catch (error) {
+            console.error('[AddAvatar] Error loading avatar from step1:', error);
+          }
+        } else {
+          // Load from Redux profile state
+          if (profileState.avatar && isMounted) {
+            setSelectedAvatar(profileState.avatar);
+          } else if (!profileState.avatar && !profileState.isLoading && !profileState.businessProfile && !profileState.userAccount && isMounted) {
+            // Only load profile if:
+            // 1. No avatar in state
+            // 2. Not currently loading
+            // 3. Profile hasn't been loaded yet (no businessProfile or userAccount)
+            // This prevents triggering AppLoader when profile is already loaded
+            try {
+              await dispatch(loadProfile()).unwrap();
+              // Note: profileState.avatar will be updated by Redux, handled in next effect
+            } catch (error) {
+              console.error('[AddAvatar] Error loading profile:', error);
+              // Continue even if loadProfile fails - user can still select an avatar
             }
           }
-        } catch (error) {
-          console.error('Error loading avatar from step1:', error);
+          // If profile is loaded but avatar is missing, user can still select an avatar
+          // Don't call loadProfile() to avoid triggering AppLoader
         }
-      } else {
-        // Load from Redux profile state
-        if (profileState.avatar) {
-          setSelectedAvatar(profileState.avatar);
-        } else {
-          // Fallback: load from service if not in Redux
-          dispatch(loadProfile());
-        }
+      } catch (error) {
+        console.error('[AddAvatar] Unexpected error in loadCurrentAvatar:', error);
       }
     };
+    
     loadCurrentAvatar();
-  }, [isFromBusinessProfile, profileState.avatar, dispatch]);
+    
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFromBusinessProfile]);
+  
+  // Update avatar when profileState.avatar changes (e.g., after loadProfile completes)
+  useEffect(() => {
+    if (!isFromBusinessProfile && profileState.avatar && !selectedAvatar) {
+      setSelectedAvatar(profileState.avatar);
+    }
+  }, [isFromBusinessProfile, profileState.avatar, selectedAvatar]);
 
   const saveAvatar = async () => {
     if (!selectedAvatar) {
@@ -91,25 +130,14 @@ export default function AddAvatarScreen() {
     }
   };
 
-  const renderAvatar = ({ item }: { item: Avatar }) => {
-    const isSelected = selectedAvatar?.id === item.id;
-
-    return (
-      <View
-        style={[
-          styles.avatarContainer,
-          isSelected && styles.avatarContainerSelected,
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => setSelectedAvatar(item)}
-          activeOpacity={0.7}
-        >
-          <Image source={item.imgSrc} style={styles.avatarImage} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  // Group avatars into rows of 3 for grid layout
+  const avatarRows = useMemo(() => {
+    const rows: Avatar[][] = [];
+    for (let i = 0; i < avatarList.length; i += 3) {
+      rows.push(avatarList.slice(i, i + 3));
+    }
+    return rows;
+  }, []);
 
   const isIOS = Platform.OS === 'ios';
 
@@ -125,14 +153,39 @@ export default function AddAvatarScreen() {
 
         {/* Avatars Grid */}
         <View style={styles.content}>
-          <FlatList
-            data={avatarList}
-            renderItem={renderAvatar}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={3}
+          <ScrollView
+            style={styles.scrollView}
             contentContainerStyle={[styles.avatarList, { paddingBottom: buttonContainerHeight + 20 }]}
             showsVerticalScrollIndicator={false}
-          />
+          >
+            {avatarRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.row}>
+                {row.map((avatar) => {
+                  const isSelected = selectedAvatar?.id === avatar.id;
+                  return (
+                    <View
+                      key={avatar.id}
+                      style={[
+                        styles.avatarContainer,
+                        isSelected && styles.avatarContainerSelected,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() => setSelectedAvatar(avatar)}
+                        activeOpacity={0.7}
+                      >
+                        <Image source={avatar.imgSrc} style={styles.avatarImage} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {/* Fill remaining columns if row has less than 3 items */}
+                {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, idx) => (
+                  <View key={`spacer-${idx}`} style={styles.spacer} />
+                ))}
+              </View>
+            ))}
+          </ScrollView>
         </View>
       </View>
     </TouchableWithoutFeedback>
@@ -145,7 +198,7 @@ export default function AddAvatarScreen() {
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={insets.top}
         >
           {Content}
         </KeyboardAvoidingView>
@@ -199,10 +252,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  scrollView: {
+    flex: 1,
+  },
   avatarList: {
     alignItems: 'center',
     justifyContent: 'center',
     flexGrow: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarContainer: {
     width: 100,
@@ -224,6 +285,11 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
+  },
+  spacer: {
+    width: 100,
+    height: 100,
+    margin: 8,
   },
 });
 

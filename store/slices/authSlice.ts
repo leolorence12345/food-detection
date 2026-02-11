@@ -203,6 +203,41 @@ export const logout = createAsyncThunk(
   }
 );
 
+export const sendDeleteAccountOTP = createAsyncThunk(
+  'auth/sendDeleteAccountOTP',
+  async (email: string) => {
+    try {
+      console.log(`[Auth] Sending delete account OTP using ${USE_REAL_AWS_COGNITO ? 'AWS Cognito' : 'Mock'} service`);
+      const result = await cognitoOTPService.sendDeleteAccountOTP(email);
+      if (!result) {
+        throw new Error('Failed to send verification code');
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending delete account OTP:', error);
+      throw error;
+    }
+  }
+);
+
+export const verifyDeleteAccountOTPAndDelete = createAsyncThunk(
+  'auth/verifyDeleteAccountOTPAndDelete',
+  async ({ email, otp }: { email: string; otp: string }, { dispatch }) => {
+    try {
+      console.log(`[Auth] Verifying delete account OTP using ${USE_REAL_AWS_COGNITO ? 'AWS Cognito' : 'Mock'} service`);
+      const verified = await cognitoOTPService.verifyDeleteAccountOTP(email, otp);
+      if (!verified) {
+        throw new Error('Invalid or expired verification code');
+      }
+      await dispatch(deleteAccount()).unwrap();
+      return { success: true };
+    } catch (error) {
+      console.error('Error verifying delete account OTP:', error);
+      throw error;
+    }
+  }
+);
+
 export const deleteAccount = createAsyncThunk(
   'auth/deleteAccount',
   async (_, { dispatch }) => {
@@ -321,6 +356,29 @@ const authSlice = createSlice({
       .addCase(logout.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Logout failed';
+      });
+
+    // Send Delete Account OTP
+    builder
+      .addCase(sendDeleteAccountOTP.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to send verification code';
+      });
+
+    // Verify Delete Account OTP and Delete
+    builder
+      .addCase(verifyDeleteAccountOTPAndDelete.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifyDeleteAccountOTPAndDelete.fulfilled, (state) => {
+        state.isLoading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = null;
+      })
+      .addCase(verifyDeleteAccountOTPAndDelete.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Invalid or expired verification code';
       });
 
     // Delete Account

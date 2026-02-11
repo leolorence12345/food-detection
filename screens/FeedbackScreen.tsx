@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,14 +10,18 @@ import {
   Keyboard,
   ScrollView,
   Platform,
+  Image,
+  KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import type { AnalysisEntry } from '../store/slices/historySlice';
+import type { AnalysisEntry, SegmentedImages } from '../store/slices/historySlice';
 import { updateAnalysis } from '../store/slices/historySlice';
+import { nutritionAnalysisAPI } from '../services/NutritionAnalysisAPI';
 import { feedbackAPI } from '../services/FeedbackAPI';
 import OptimizedImage from '../components/OptimizedImage';
 import VectorBackButtonCircle from '../components/VectorBackButtonCircle';
@@ -50,6 +54,7 @@ const StarRating: React.FC<StarRatingProps> = ({ rating, onRatingChange }) => {
 };
 
 export default function FeedbackScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const user = useAppSelector((state) => state.auth.user);
@@ -58,7 +63,10 @@ export default function FeedbackScreen() {
   const item = (route.params as any)?.item as AnalysisEntry;
 
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const videoRef = useRef<Video>(null);
+
+  const handleVideoPlay = useCallback(() => {
+    setIsVideoPlaying((prev) => !prev);
+  }, []);
 
   // Initialize state from existing feedback if available
   const [ratings, setRatings] = useState(
@@ -75,6 +83,75 @@ export default function FeedbackScreen() {
   const commentInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const commentContainerRef = useRef<View>(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [overlayLoadFailed, setOverlayLoadFailed] = useState(false);
+  const [refreshedSegmentedImages, setRefreshedSegmentedImages] = useState<SegmentedImages | null>(null);
+  const [refreshingOverlay, setRefreshingOverlay] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(true);
+
+  const effectiveSegmentedImages = refreshedSegmentedImages ?? item?.segmented_images;
+
+  useEffect(() => {
+    setOverlayLoadFailed(false);
+    setRefreshedSegmentedImages(null);
+    setMediaLoading(true);
+  }, [item?.id]);
+
+  useEffect(() => {
+    setMediaLoading(true);
+  }, [effectiveSegmentedImages?.overlay_urls?.[0]?.url]);
+
+  // When we have job_id but no overlay URLs, fetch once so segmented images load
+  useEffect(() => {
+    if (!item?.job_id || !user?.email || effectiveSegmentedImages?.overlay_urls?.length || refreshingOverlay) return;
+    let cancelled = false;
+    (async () => {
+      setRefreshingOverlay(true);
+      try {
+        const fresh = await nutritionAnalysisAPI.getResults(item.job_id!, true);
+        if (cancelled) return;
+        if (fresh?.segmented_images?.overlay_urls?.length) {
+          setRefreshedSegmentedImages(fresh.segmented_images);
+          await dispatch(updateAnalysis({
+            userEmail: user.email,
+            analysisId: item.id,
+            updates: { segmented_images: fresh.segmented_images },
+          })).unwrap();
+        }
+      } catch {
+        if (!cancelled) setOverlayLoadFailed(true);
+      } finally {
+        if (!cancelled) setRefreshingOverlay(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [item?.id, item?.job_id, user?.email]);
+
+  const handleOverlayLoadError = useCallback(async () => {
+    if (item?.job_id && user?.email) {
+      setRefreshingOverlay(true);
+      try {
+        const fresh = await nutritionAnalysisAPI.getResults(item.job_id, true);
+        if (fresh?.segmented_images?.overlay_urls?.length) {
+          setRefreshedSegmentedImages(fresh.segmented_images);
+          await dispatch(updateAnalysis({
+            userEmail: user.email,
+            analysisId: item.id,
+            updates: { segmented_images: fresh.segmented_images },
+          })).unwrap();
+        } else {
+          setOverlayLoadFailed(true);
+        }
+      } catch {
+        setOverlayLoadFailed(true);
+      } finally {
+        setRefreshingOverlay(false);
+      }
+    } else {
+      setOverlayLoadFailed(true);
+    }
+  }, [item?.id, item?.job_id, user?.email, dispatch]);
 
   if (!item) {
     return (
@@ -153,6 +230,27 @@ export default function FeedbackScreen() {
       })
     : null;
 
+  // Track keyboard visibility for padding / button positioning
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // When keyboard shows, gently scroll to the comment box
   useEffect(() => {
     const keyboardListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -163,16 +261,19 @@ export default function FeedbackScreen() {
               scrollViewRef.current as any,
               (x, y) => {
                 scrollViewRef.current?.scrollTo({
-                  y: Math.max(0, y - 50),
+                  y: Math.max(0, y - 100),
                   animated: true,
                 });
               },
               () => {
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                // Fallback: scroll to end to ensure it is visible
+                scrollViewRef.current?.scrollToEnd({ animated: true });
               }
             );
+          } else if (scrollViewRef.current) {
+            scrollViewRef.current.scrollToEnd({ animated: true });
           }
-        }, 200);
+        }, 300);
       }
     );
 
@@ -238,55 +339,53 @@ export default function FeedbackScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      <AppHeader
-        displayName={displayName}
-        lastLoginDate={lastLoginDate}
-        lastLoginTime={lastLoginTime}
-        onProfilePress={() => navigation.navigate('Profile' as never)}
-      />
-
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator={false}
-          decelerationRate="normal"
-          bounces={true}
-          scrollEventThrottle={16}
-          overScrollMode="never"
-          nestedScrollEnabled={true}
-          removeClippedSubviews={false}
-          scrollEnabled={true}
+      {Platform.OS === 'ios' ? (
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={insets.top}
         >
+          <AppHeader
+            displayName={displayName}
+            lastLoginDate={lastLoginDate}
+            lastLoginTime={lastLoginTime}
+            onProfilePress={() => navigation.navigate('Profile' as never)}
+          />
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            decelerationRate="normal"
+            bounces={true}
+            scrollEventThrottle={16}
+            overScrollMode="never"
+            nestedScrollEnabled={true}
+          >
         {/* Media Preview */}
         <View style={styles.mediaContainer}>
           {isVideo && item.videoUri ? (
             <>
               <Video
-                ref={videoRef}
                 source={{ uri: item.videoUri }}
                 style={styles.media}
                 resizeMode={ResizeMode.COVER}
+                isLooping={false}
+                isMuted={false}
                 shouldPlay={isVideoPlaying}
-                isLooping
-                useNativeControls={isVideoPlaying}
+                useNativeControls={false}
                 onPlaybackStatusUpdate={(status) => {
-                  if (status.isLoaded && 'isPlaying' in status) {
-                    setIsVideoPlaying(status.isPlaying);
+                  if (status.isLoaded && status.didJustFinish) {
+                    setIsVideoPlaying(false);
                   }
                 }}
               />
               {!isVideoPlaying && (
                 <TouchableOpacity
                   style={styles.playButtonOverlay}
-                  onPress={() => {
-                    setIsVideoPlaying(true);
-                    videoRef.current?.playAsync();
-                  }}
+                  onPress={handleVideoPlay}
                   activeOpacity={0.7}
                 >
                   <View style={styles.playButton}>
@@ -294,17 +393,61 @@ export default function FeedbackScreen() {
                   </View>
                 </TouchableOpacity>
               )}
+              {isVideoPlaying && (
+                <TouchableOpacity
+                  style={styles.playButtonOverlay}
+                  onPress={handleVideoPlay}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.playButton}>
+                    <Ionicons name="pause" size={28} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+              )}
             </>
-          ) : item.imageUri ? (
-            <OptimizedImage
-              source={{ uri: item.imageUri }}
-              style={styles.media}
-              resizeMode="cover"
-              cachePolicy="memory-disk"
-              priority="normal"
-            />
           ) : (
-            <View style={[styles.media, styles.placeholder]} />
+            (() => {
+              const hasOverlay = !overlayLoadFailed && effectiveSegmentedImages?.overlay_urls && effectiveSegmentedImages.overlay_urls.length > 0;
+              const showImageLoader = !isVideo && (hasOverlay || !!item.imageUri);
+              if (hasOverlay) {
+                return (
+                  <>
+                    <Image
+                      source={{ uri: effectiveSegmentedImages!.overlay_urls![0].url }}
+                      style={styles.media}
+                      resizeMode="cover"
+                      onLoad={() => setMediaLoading(false)}
+                      onError={() => { setMediaLoading(false); handleOverlayLoadError(); }}
+                    />
+                    {showImageLoader && mediaLoading && (
+                      <View style={[StyleSheet.absoluteFill, styles.mediaLoader]} pointerEvents="none">
+                        <ActivityIndicator size="large" color="#7BA21B" />
+                      </View>
+                    )}
+                  </>
+                );
+              }
+              if (item.imageUri) {
+                return (
+                  <>
+                    <OptimizedImage
+                      source={{ uri: item.imageUri }}
+                      style={styles.media}
+                      resizeMode="cover"
+                      cachePolicy="memory-disk"
+                      priority="normal"
+                      onImageLoad={() => setMediaLoading(false)}
+                    />
+                    {showImageLoader && mediaLoading && (
+                      <View style={[StyleSheet.absoluteFill, styles.mediaLoader]} pointerEvents="none">
+                        <ActivityIndicator size="large" color="#7BA21B" />
+                      </View>
+                    )}
+                  </>
+                );
+              }
+              return <View style={[styles.media, styles.placeholder]} />;
+            })()
           )}
           {/* Back Button Overlay */}
           <View style={styles.backButtonOverlay}>
@@ -435,39 +578,296 @@ export default function FeedbackScreen() {
               numberOfLines={4}
               textAlignVertical="top"
               onFocus={() => {
+                // Single scroll after keyboard has time to appear
                 setTimeout(() => {
                   if (commentContainerRef.current && scrollViewRef.current) {
                     commentContainerRef.current.measureLayout(
                       scrollViewRef.current as any,
                       (x, y) => {
                         scrollViewRef.current?.scrollTo({
-                          y: Math.max(0, y - 50),
+                          y: Math.max(0, y - 100),
                           animated: true,
                         });
                       },
                       () => {
-                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                        scrollViewRef.current?.scrollToEnd({ animated: true });
                       }
                     );
+                  } else if (scrollViewRef.current) {
+                    scrollViewRef.current.scrollToEnd({ animated: true });
                   }
-                }, 200);
+                }, 300);
               }}
             />
           </View>
         </View>
         </ScrollView>
 
-        {/* Save Button - Fixed at Bottom */}
-        <BottomButtonContainer>
-          <TouchableOpacity
-            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={isSaving}
+          {/* Save Button - Fixed at Bottom */}
+          <BottomButtonContainer>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+            </TouchableOpacity>
+          </BottomButtonContainer>
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={{ flex: 1 }}>
+          <AppHeader
+            displayName={displayName}
+            lastLoginDate={lastLoginDate}
+            lastLoginTime={lastLoginTime}
+            onProfilePress={() => navigation.navigate('Profile' as never)}
+          />
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            decelerationRate="normal"
+            bounces={true}
+            scrollEventThrottle={16}
+            overScrollMode="never"
+            nestedScrollEnabled={true}
           >
-            <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
-          </TouchableOpacity>
-        </BottomButtonContainer>
-      </View>
+            {/* Media Preview */}
+            <View style={styles.mediaContainer}>
+              {isVideo && item.videoUri ? (
+                <>
+                  <Video
+                    source={{ uri: item.videoUri }}
+                    style={styles.media}
+                    resizeMode={ResizeMode.COVER}
+                    isLooping={false}
+                    isMuted={false}
+                    shouldPlay={isVideoPlaying}
+                    useNativeControls={false}
+                    onPlaybackStatusUpdate={(status) => {
+                      if (status.isLoaded && status.didJustFinish) {
+                        setIsVideoPlaying(false);
+                      }
+                    }}
+                  />
+                  {!isVideoPlaying && (
+                    <TouchableOpacity
+                      style={styles.playButtonOverlay}
+                      onPress={handleVideoPlay}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.playButton}>
+                        <Ionicons name="play" size={28} color="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {isVideoPlaying && (
+                    <TouchableOpacity
+                      style={styles.playButtonOverlay}
+                      onPress={handleVideoPlay}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.playButton}>
+                        <Ionicons name="pause" size={28} color="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                (() => {
+                  const hasOverlay = !overlayLoadFailed && effectiveSegmentedImages?.overlay_urls && effectiveSegmentedImages.overlay_urls.length > 0;
+                  const showImageLoader = !isVideo && (hasOverlay || !!item.imageUri);
+                  if (hasOverlay) {
+                    return (
+                      <>
+                        <Image
+                          source={{ uri: effectiveSegmentedImages!.overlay_urls![0].url }}
+                          style={styles.media}
+                          resizeMode="cover"
+                          onLoad={() => setMediaLoading(false)}
+                          onError={() => { setMediaLoading(false); handleOverlayLoadError(); }}
+                        />
+                        {showImageLoader && mediaLoading && (
+                          <View style={[StyleSheet.absoluteFill, styles.mediaLoader]} pointerEvents="none">
+                            <ActivityIndicator size="large" color="#7BA21B" />
+                          </View>
+                        )}
+                      </>
+                    );
+                  }
+                  if (item.imageUri) {
+                    return (
+                      <>
+                        <OptimizedImage
+                          source={{ uri: item.imageUri }}
+                          style={styles.media}
+                          resizeMode="cover"
+                          cachePolicy="memory-disk"
+                          priority="normal"
+                          onImageLoad={() => setMediaLoading(false)}
+                        />
+                        {showImageLoader && mediaLoading && (
+                          <View style={[StyleSheet.absoluteFill, styles.mediaLoader]} pointerEvents="none">
+                            <ActivityIndicator size="large" color="#7BA21B" />
+                          </View>
+                        )}
+                      </>
+                    );
+                  }
+                  return <View style={[styles.media, styles.placeholder]} />;
+                })()
+              )}
+              <View style={styles.backButtonOverlay}>
+                <View style={styles.backButtonBackground}>
+                  <VectorBackButtonCircle onPress={() => navigation.goBack()} size={24} />
+                </View>
+              </View>
+            </View>
+            <View style={styles.mealInfo}>
+              <View style={styles.mealHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.mealName}>{item.mealName || 'Burger'}</Text>
+                  <Text style={styles.mealCalories}>{item.nutritionalInfo.calories} Kcal</Text>
+                </View>
+                <View style={styles.mealActions}>
+                  <TouchableOpacity
+                    style={styles.writeCommentButton}
+                    onPress={() => {
+                      setTimeout(() => {
+                        if (commentContainerRef.current && scrollViewRef.current) {
+                          commentContainerRef.current.measureLayout(
+                            scrollViewRef.current as any,
+                            (x, y) => {
+                              scrollViewRef.current?.scrollTo({
+                                y: Math.max(0, y - 50),
+                                animated: true,
+                              });
+                              setTimeout(() => {
+                                commentInputRef.current?.focus();
+                              }, 300);
+                            },
+                            () => {
+                              scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                            }
+                          );
+                        }
+                      }, 100);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.writeCommentButtonText}>Write Comments</Text>
+                  </TouchableOpacity>
+                  <View style={styles.captureInfo}>
+                    <Text style={styles.captureValue}>
+                      {captureDateText && captureTimeText
+                        ? `${captureDateText}, ${captureTimeText}`
+                        : 'Unavailable'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            <View style={styles.feedbackSection}>
+              <Text style={styles.feedbackTitle}>Your feedback is valuable to us!</Text>
+              <View style={styles.ratingRow}>
+                <Text style={styles.ratingLabel}>Food dish identification</Text>
+                <StarRating
+                  rating={ratings.foodDishIdentification}
+                  onRatingChange={(rating) =>
+                    setRatings((prev) => ({ ...prev, foodDishIdentification: rating }))
+                  }
+                />
+              </View>
+              <View style={styles.ratingRow}>
+                <Text style={styles.ratingLabel}>Dish contents identification</Text>
+                <StarRating
+                  rating={ratings.dishContentsIdentification}
+                  onRatingChange={(rating) =>
+                    setRatings((prev) => ({ ...prev, dishContentsIdentification: rating }))
+                  }
+                />
+              </View>
+              <View style={styles.ratingRow}>
+                <Text style={styles.ratingLabel}>Mass estimation</Text>
+                <StarRating
+                  rating={ratings.massEstimation}
+                  onRatingChange={(rating) =>
+                    setRatings((prev) => ({ ...prev, massEstimation: rating }))
+                  }
+                />
+              </View>
+              <View style={styles.ratingRow}>
+                <Text style={styles.ratingLabel}>Calorie estimation</Text>
+                <StarRating
+                  rating={ratings.calorieEstimation}
+                  onRatingChange={(rating) =>
+                    setRatings((prev) => ({ ...prev, calorieEstimation: rating }))
+                  }
+                />
+              </View>
+              <View style={styles.ratingRow}>
+                <Text style={styles.ratingLabel}>Overall</Text>
+                <StarRating
+                  rating={ratings.overall}
+                  onRatingChange={(rating) =>
+                    setRatings((prev) => ({ ...prev, overall: rating }))
+                  }
+                />
+              </View>
+              <View ref={commentContainerRef} style={styles.commentSection}>
+                <TextInput
+                  ref={commentInputRef}
+                  style={styles.commentInput}
+                  placeholder="Anything you would like to tell us? (e.g., wrong item, portion too high, etc.)"
+                  placeholderTextColor="#9CA3AF"
+                  value={comment}
+                  onChangeText={setComment}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  onFocus={() => {
+                    // Single scroll after keyboard has time to appear
+                    setTimeout(() => {
+                      if (commentContainerRef.current && scrollViewRef.current) {
+                        commentContainerRef.current.measureLayout(
+                          scrollViewRef.current as any,
+                          (x, y) => {
+                            scrollViewRef.current?.scrollTo({
+                              y: Math.max(0, y - 100),
+                              animated: true,
+                            });
+                          },
+                          () => {
+                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                          }
+                        );
+                      } else if (scrollViewRef.current) {
+                        scrollViewRef.current.scrollToEnd({ animated: true });
+                      }
+                    }, 300);
+                  }}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Save Button - Fixed at Bottom */}
+          <BottomButtonContainer>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+            </TouchableOpacity>
+          </BottomButtonContainer>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -486,11 +886,16 @@ const styles = StyleSheet.create({
   mediaContainer: {
     width: '100%',
     height: 250,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     position: 'relative',
+  },
+  mediaLoader: {
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   media: {
     width: '100%',

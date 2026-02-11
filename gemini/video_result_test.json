@@ -1,0 +1,95 @@
+{
+  "image_path": "test.mov",
+  "image_name": "test.mov",
+  "raw_response": "```json\n{\n  \"main_food_item\": \"Fried fish with bean stew and boiled root vegetable\",\n  \"cuisine_type\": \"West African / Caribbean\",\n  \"cooking_method\": \"Frying (fish), Boiling (root vegetable, beans), Stewing (beans and sauce)\",\n  \"visible_ingredients\": [\n    {\n      \"name\": \"Fried Fish\",\n      \"estimated_quantity\": \"2 pieces (likely small whole fish or large cuts)\",\n      \"bounding_box\": [0, 310, 500, 720],\n      \"time_range\": \"00:00-00:06\"\n    },\n    {\n      \"name\": \"Fried Fish\",\n      \"estimated_quantity\": \"1 piece (similar to the other)\",\n      \"bounding_box\": [500, 310, 1280, 720],\n      \"time_range\": \"00:00-00:06\"\n    },\n    {\n      \"name\": \"Boiled Root Vegetable (e.g., Cassava/Yam)\",\n      \"estimated_quantity\": \"approx. 1.5 cups (several chunks)\",\n      \"bounding_box\": [0, 0, 1280, 500],\n      \"time_range\": \"00:00-00:06\"\n    },\n    {\n      \"name\": \"Beans (e.g., Black-eyed Peas)\",\n      \"estimated_quantity\": \"approx. 1 cup\",\n      \"bounding_box\": [150, 0, 1100, 450],\n      \"time_range\": \"00:00-00:06\"\n    },\n    {\n      \"name\": \"Stew/Sauce\",\n      \"estimated_quantity\": \"approx. 0.5 cup\",\n      \"bounding_box\": [250, 50, 1000, 350],\n      \"time_range\": \"00:00-00:06\"\n    }\n  ],\n  \"ingredient_breakdown\": {\n    \"Fried Fish\": \"Whole Tilapia or similar firm white fish, seasoned with salt, pepper, garlic, and possibly other spices (e.g., paprika), dredged in flour or cornstarch, and deep-fried in vegetable oil or palm oil.\",\n    \"Boiled Root Vegetable\": \"Chunks of boiled cassava (yuca), yam, or potentially potato, cooked with water and salt.\",\n    \"Beans\": \"Cooked black-eyed peas or similar light-colored beans, possibly cooked with a small amount of oil and seasoning.\",\n    \"Stew/Sauce\": \"Tomato-based stew made with blended tomatoes, onions, bell peppers, Scotch bonnet pepper (for heat), garlic, ginger, tomato paste, palm oil (or other vegetable oil), bouillon cube/powder, salt, and various herbs and spices (e.g., thyme, curry powder).\"\n  },\n  \"nutritional_info\": {\n    \"calories\": \"800-1200 kcal (estimated, highly dependent on portion size and frying oil absorption)\",\n    \"macros\": {\n      \"protein\": \"50-70g (high, from fish and beans)\",\n      \"carbohydrates\": \"80-120g (high, from root vegetable and beans)\",\n      \"fats\": \"40-70g (moderate to high, from fried fish and oil in stew)\"\n    },\n    \"micronutrients\": \"Good source of B vitamins (fish, beans), Vitamin C (tomatoes, peppers), Iron (beans), Potassium (root vegetables, beans), Calcium (fish bones if consumed).\",\n    \"fiber_content\": \"15-25g (high, from beans, root vegetable, and vegetables in stew)\"\n  },\n  \"allergens\": [\n    \"Fish\",\n    \"Soy (if soy oil or soy-containing bouillon is used)\"\n  ],\n  \"dietary_tags\": [\n    \"High Protein\",\n    \"High Fiber\",\n    \"Gluten-Free (if no wheat flour used for fish breading)\",\n    \"Dairy-Free\",\n    \"Pescatarian\"\n  ],\n  \"additional_notes\": \"This dish is a hearty and complete meal, often found in West African countries like Ghana (where a similar dish with rice and beans is called Waakye), or in Caribbean cuisine. The starchy component appears to be boiled cassava or yam, providing complex carbohydrates. The fish is well-fried and crispy, and the bean stew provides additional protein and fiber, seasoned with a rich, savory, and likely spicy sauce.\"\n}\n```",
+  "parsed": true,
+  "main_food_item": "Fried fish with bean stew and boiled root vegetable",
+  "cuisine_type": "West African / Caribbean",
+  "cooking_method": "Frying (fish), Boiling (root vegetable, beans), Stewing (beans and sauce)",
+  "visible_ingredients": [
+    {
+      "name": "Fried Fish",
+      "estimated_quantity": "2 pieces (likely small whole fish or large cuts)",
+      "bounding_box": [
+        0,
+        310,
+        500,
+        720
+      ],
+      "time_range": "00:00-00:06"
+    },
+    {
+      "name": "Fried Fish",
+      "estimated_quantity": "1 piece (similar to the other)",
+      "bounding_box": [
+        500,
+        310,
+        1280,
+        720
+      ],
+      "time_range": "00:00-00:06"
+    },
+    {
+      "name": "Boiled Root Vegetable (e.g., Cassava/Yam)",
+      "estimated_quantity": "approx. 1.5 cups (several chunks)",
+      "bounding_box": [
+        0,
+        0,
+        1280,
+        500
+      ],
+      "time_range": "00:00-00:06"
+    },
+    {
+      "name": "Beans (e.g., Black-eyed Peas)",
+      "estimated_quantity": "approx. 1 cup",
+      "bounding_box": [
+        150,
+        0,
+        1100,
+        450
+      ],
+      "time_range": "00:00-00:06"
+    },
+    {
+      "name": "Stew/Sauce",
+      "estimated_quantity": "approx. 0.5 cup",
+      "bounding_box": [
+        250,
+        50,
+        1000,
+        350
+      ],
+      "time_range": "00:00-00:06"
+    }
+  ],
+  "ingredient_breakdown": {
+    "Fried Fish": "Whole Tilapia or similar firm white fish, seasoned with salt, pepper, garlic, and possibly other spices (e.g., paprika), dredged in flour or cornstarch, and deep-fried in vegetable oil or palm oil.",
+    "Boiled Root Vegetable": "Chunks of boiled cassava (yuca), yam, or potentially potato, cooked with water and salt.",
+    "Beans": "Cooked black-eyed peas or similar light-colored beans, possibly cooked with a small amount of oil and seasoning.",
+    "Stew/Sauce": "Tomato-based stew made with blended tomatoes, onions, bell peppers, Scotch bonnet pepper (for heat), garlic, ginger, tomato paste, palm oil (or other vegetable oil), bouillon cube/powder, salt, and various herbs and spices (e.g., thyme, curry powder)."
+  },
+  "nutritional_info": {
+    "calories": "800-1200 kcal (estimated, highly dependent on portion size and frying oil absorption)",
+    "macros": {
+      "protein": "50-70g (high, from fish and beans)",
+      "carbohydrates": "80-120g (high, from root vegetable and beans)",
+      "fats": "40-70g (moderate to high, from fried fish and oil in stew)"
+    },
+    "micronutrients": "Good source of B vitamins (fish, beans), Vitamin C (tomatoes, peppers), Iron (beans), Potassium (root vegetables, beans), Calcium (fish bones if consumed).",
+    "fiber_content": "15-25g (high, from beans, root vegetable, and vegetables in stew)"
+  },
+  "allergens": [
+    "Fish",
+    "Soy (if soy oil or soy-containing bouillon is used)"
+  ],
+  "dietary_tags": [
+    "High Protein",
+    "High Fiber",
+    "Gluten-Free (if no wheat flour used for fish breading)",
+    "Dairy-Free",
+    "Pescatarian"
+  ],
+  "additional_notes": "This dish is a hearty and complete meal, often found in West African countries like Ghana (where a similar dish with rice and beans is called Waakye), or in Caribbean cuisine. The starchy component appears to be boiled cassava or yam, providing complex carbohydrates. The fish is well-fried and crispy, and the bean stew provides additional protein and fiber, seasoned with a rich, savory, and likely spicy sauce.",
+  "model": "gemini-2.5-flash"
+}

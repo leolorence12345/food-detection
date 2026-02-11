@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,8 +11,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import VectorBackButton from '../components/VectorBackButton';
 import BottomButtonContainer from '../components/BottomButtonContainer';
@@ -67,6 +68,7 @@ const feedbackQuestions: Omit<FeedbackQuestion, 'rating'>[] = [
 ];
 
 export default function SendFeedbackScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const [questions, setQuestions] = useState<FeedbackQuestion[]>(
     feedbackQuestions.map(q => ({ ...q, rating: null }))
@@ -74,6 +76,27 @@ export default function SendFeedbackScreen() {
   const [additionalComments, setAdditionalComments] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const commentsContainerRef = useRef<View>(null);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentQuestionIndex];
@@ -154,187 +177,127 @@ export default function SendFeedbackScreen() {
     );
   };
 
+  const scrollToComments = () => {
+    setTimeout(() => {
+      if (commentsContainerRef.current && scrollViewRef.current) {
+        commentsContainerRef.current.measureLayout(
+          scrollViewRef.current as any,
+          (x, y) => {
+            scrollViewRef.current?.scrollTo({
+              y: Math.max(0, y - 100),
+              animated: true,
+            });
+          },
+          () => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }
+        );
+      } else if (scrollViewRef.current) {
+        scrollViewRef.current.scrollToEnd({ animated: true });
+      }
+    }, 300);
+  };
+
   const isIOS = Platform.OS === 'ios';
+
+  const scrollContent = (
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.scrollView}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingBottom: isKeyboardVisible ? 200 : 100 },
+      ]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      decelerationRate="normal"
+      bounces={true}
+      scrollEventThrottle={16}
+      overScrollMode="never"
+      nestedScrollEnabled={true}
+    >
+      <View style={styles.contentContainer}>
+        {currentQuestionIndex === 0 ? (
+          <Text style={styles.instructionsText}>
+            We would like you to rate the app's user interface, experience, helpfulness, and overall project using the rating scale provided below. Circle a number for each item that best reflects how you feel. That is, circle 1 if you strongly disagree, 5 if you strongly agree with the statement, or any number in between.
+          </Text>
+        ) : (
+          <View style={styles.questionContainer}>
+            <Text style={styles.questionText}>
+              {currentQuestion?.question}
+            </Text>
+            {currentQuestion && (
+              <RatingScale
+                questionId={currentQuestion.id}
+                currentRating={currentQuestion.rating}
+              />
+            )}
+          </View>
+        )}
+
+        {isLastQuestion && (
+          <View ref={commentsContainerRef} style={styles.commentsContainer}>
+            <Text style={styles.commentsLabel}>
+              Give us your feedback
+            </Text>
+            <TextInput
+              style={styles.commentsInput}
+              onChangeText={setAdditionalComments}
+              value={additionalComments}
+              multiline={true}
+              numberOfLines={10}
+              placeholder="Enter your comments here..."
+              placeholderTextColor="#9CA3AF"
+              textAlignVertical="top"
+              onFocus={scrollToComments}
+            />
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+
+  const bottomButton = (
+    <BottomButtonContainer>
+      <TouchableOpacity
+        style={[
+          styles.nextButton,
+          ((currentQuestionIndex > 0 && !isRatingSelected) || isLoading) && styles.nextButtonDisabled,
+        ]}
+        onPress={isLastQuestion ? sendFeedback : handleNextQuestion}
+        disabled={(currentQuestionIndex > 0 && !isRatingSelected) || isLoading}
+        activeOpacity={0.9}
+      >
+        {isLastQuestion && isLoading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.nextButtonText}>
+            {isLastQuestion ? 'Send Feedback' : 'Next'}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </BottomButtonContainer>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      {isIOS ? (
-        <KeyboardAvoidingView
-          behavior="padding"
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <VectorBackButton onPress={() => navigation.goBack()} />
-            <Text style={styles.headerTitle}>Send Feedback</Text>
-            <View style={{ width: 40 }} />
-          </View>
 
-          {/* Content */}
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            decelerationRate="normal"
-            bounces={true}
-            scrollEventThrottle={16}
-            overScrollMode="never"
-            nestedScrollEnabled={true}
-          >
-            <View style={styles.contentContainer}>
-              {/* Show instructions on first screen (before questions) */}
-              {currentQuestionIndex === 0 ? (
-                <Text style={styles.instructionsText}>
-                  We would like you to rate the app's user interface, experience, ease-of-use, helpfulness, and overall project using the rating scale provided below. Circle a number for each item that best reflects how you feel. That is, circle 1 if you strongly disagree, 5 if you strongly agree with the statement, or any number in between.
-                </Text>
-              ) : (
-                /* Single Question View */
-                <View style={styles.questionContainer}>
-                  <Text style={styles.questionText}>
-                    {currentQuestion?.question}
-                  </Text>
-                  {currentQuestion && (
-                    <RatingScale
-                      questionId={currentQuestion.id}
-                      currentRating={currentQuestion.rating}
-                    />
-                  )}
-                </View>
-              )}
-
-              {/* Additional Comments (final question only) */}
-              {isLastQuestion && (
-                <View style={styles.commentsContainer}>
-                  <Text style={styles.commentsLabel}>
-                    Give us your feedback
-                  </Text>
-                  <TextInput
-                    style={styles.commentsInput}
-                    onChangeText={setAdditionalComments}
-                    value={additionalComments}
-                    multiline={true}
-                    numberOfLines={10}
-                    placeholder="Enter your comments here..."
-                    placeholderTextColor="#9CA3AF"
-                    textAlignVertical="top"
-                  />
-                </View>
-              )}
-            </View>
-          </ScrollView>
-
-          {/* Next/Submit Button - Fixed at Bottom */}
-          <BottomButtonContainer>
-            <TouchableOpacity
-              style={[
-                styles.nextButton,
-                ((currentQuestionIndex > 0 && !isRatingSelected) || isLoading) && styles.nextButtonDisabled,
-              ]}
-              onPress={isLastQuestion ? sendFeedback : handleNextQuestion}
-              disabled={(currentQuestionIndex > 0 && !isRatingSelected) || isLoading}
-              activeOpacity={0.9}
-            >
-              {isLastQuestion && isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.nextButtonText}>
-                  {isLastQuestion ? 'Send Feedback' : 'Next'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </BottomButtonContainer>
-        </KeyboardAvoidingView>
-      ) : (
-        <View style={{ flex: 1 }}>
-          {/* Header */}
-          <View style={styles.header}>
-            <VectorBackButton onPress={() => navigation.goBack()} />
-            <Text style={styles.headerTitle}>Send Feedback</Text>
-            <View style={{ width: 40 }} />
-          </View>
-
-          {/* Content */}
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            decelerationRate="normal"
-            bounces={true}
-            scrollEventThrottle={16}
-            overScrollMode="never"
-            nestedScrollEnabled={true}
-          >
-            <View style={styles.contentContainer}>
-              {/* Show instructions on first screen (before questions) */}
-              {currentQuestionIndex === 0 ? (
-                <Text style={styles.instructionsText}>
-                  We would like you to rate the app's user interface, experience, ease-of-use, helpfulness, and overall project using the rating scale provided below. Circle a number for each item that best reflects how you feel. That is, circle 1 if you strongly disagree, 5 if you strongly agree with the statement, or any number in between.
-                </Text>
-              ) : (
-                /* Single Question View */
-                <View style={styles.questionContainer}>
-                  <Text style={styles.questionText}>
-                    {currentQuestion?.question}
-                  </Text>
-                  {currentQuestion && (
-                    <RatingScale
-                      questionId={currentQuestion.id}
-                      currentRating={currentQuestion.rating}
-                    />
-                  )}
-                </View>
-              )}
-
-              {/* Additional Comments (final question only) */}
-              {isLastQuestion && (
-                <View style={styles.commentsContainer}>
-                  <Text style={styles.commentsLabel}>
-                    Give us your feedback
-                  </Text>
-                  <TextInput
-                    style={styles.commentsInput}
-                    onChangeText={setAdditionalComments}
-                    value={additionalComments}
-                    multiline={true}
-                    numberOfLines={10}
-                    placeholder="Enter your comments here..."
-                    placeholderTextColor="#9CA3AF"
-                    textAlignVertical="top"
-                  />
-                </View>
-              )}
-            </View>
-          </ScrollView>
-
-          {/* Next/Submit Button - Fixed at Bottom */}
-          <BottomButtonContainer>
-            <TouchableOpacity
-              style={[
-                styles.nextButton,
-                ((currentQuestionIndex > 0 && !isRatingSelected) || isLoading) && styles.nextButtonDisabled,
-              ]}
-              onPress={isLastQuestion ? sendFeedback : handleNextQuestion}
-              disabled={(currentQuestionIndex > 0 && !isRatingSelected) || isLoading}
-              activeOpacity={0.9}
-            >
-              {isLastQuestion && isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.nextButtonText}>
-                  {isLastQuestion ? 'Send Feedback' : 'Next'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </BottomButtonContainer>
+      <KeyboardAvoidingView
+        behavior={isIOS ? 'padding' : 'padding'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={insets.top}
+      >
+        <View style={styles.header}>
+          <VectorBackButton onPress={() => navigation.goBack()} />
+          <Text style={styles.headerTitle}>Send Feedback</Text>
+          <View style={{ width: 40 }} />
         </View>
-      )}
+
+        {scrollContent}
+        {bottomButton}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

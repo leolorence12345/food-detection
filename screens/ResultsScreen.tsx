@@ -16,6 +16,7 @@ import ImageWithLoader from '../components/ImageWithLoader';
 import AppHeader from '../components/AppHeader';
 import BottomButtonContainer from '../components/BottomButtonContainer';
 import TutorialScreen from './TutorialScreen';
+import CircularProgressBar from '../components/CircularProgressBar';
 
 // SVG Icon Component
 const Group2065Icon = ({ width = 28, height = 28 }: { width?: number; height?: number }) => (
@@ -37,23 +38,24 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 export default function ResultsScreen({ navigation: navigationProp }: { navigation?: any }) {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
-  const history = useAppSelector((state) => state.history.history);
-  const isLoading = useAppSelector((state) => state.history.isLoading);
-  const error = useAppSelector((state) => state.history.error);
-  const user = useAppSelector((state) => state.auth.user);
-  const businessProfile = useAppSelector((state) => state.profile.businessProfile);
-  const userAccount = useAppSelector((state) => state.profile.userAccount);
-  const isProfileLoading = useAppSelector((state) => state.profile.isLoading);
+  const history = useAppSelector((state) => state.history?.history ?? []);
+  const isLoading = useAppSelector((state) => state.history?.isLoading ?? false);
+  const error = useAppSelector((state) => state.history?.error ?? null);
+  const user = useAppSelector((state) => state.auth?.user);
+  const businessProfile = useAppSelector((state) => state.profile?.businessProfile);
+  const userAccount = useAppSelector((state) => state.profile?.userAccount);
+  const isProfileLoading = useAppSelector((state) => state.profile?.isLoading ?? false);
 
   // Note: profileBelongsToCurrentUser is calculated later (used in loader checks)
   // App.tsx now handles initial profile validation before showing this screen
 
   const deletingRef = useRef<Set<string>>(new Set());
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
-  const videoRefs = useRef<{ [key: string]: Video | null }>({});
   const swipePositions = useRef<{ [key: string]: Animated.Value }>({});
   const [canShowTutorial, setCanShowTutorial] = useState(false); // Control when TutorialScreen can be shown
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false); // State to trigger re-renders when history is loaded
+  const [isReturningFromTutorial, setIsReturningFromTutorial] = useState(false); // Track when returning from TutorialScreen
+  const rightSwipePosition = useRef(new Animated.Value(0)); // For right swipe to TutorialScreen
 
   // Use navigation prop if provided (for stack navigation), otherwise use hook
   const nav = navigationProp || navigation;
@@ -196,16 +198,10 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
     }
   }, [history.length, isLoading, user?.email]);
 
-  // Cleanup: Stop playing video if the item is removed from history
+  // Cleanup: clear playing state if the item is removed from history
   useEffect(() => {
     if (playingVideoId && !history.find(item => item.id === playingVideoId)) {
-      const video = videoRefs.current[playingVideoId];
-      if (video) {
-        video.pauseAsync();
-        video.setPositionAsync(0);
-      }
       setPlayingVideoId(null);
-      delete videoRefs.current[playingVideoId];
     }
   }, [history, playingVideoId]);
 
@@ -213,29 +209,12 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
   // No need to navigate to it separately
   // Note: profileBelongsToCurrentUser is calculated at the top of the component (line 50)
 
-  const handleVideoPlay = async (itemId: string, videoUri: string) => {
-    // Stop any currently playing video
-    if (playingVideoId && playingVideoId !== itemId) {
-      const prevVideo = videoRefs.current[playingVideoId];
-      if (prevVideo) {
-        await prevVideo.pauseAsync();
-        await prevVideo.setPositionAsync(0);
-      }
+  const handleVideoPlay = (itemId: string, _videoUri: string) => {
+    // Toggle: if this video is playing, pause it; otherwise play this one (and implicit pause of any other via shouldPlay)
+    if (playingVideoId === itemId) {
       setPlayingVideoId(null);
-    }
-
-    const video = videoRefs.current[itemId];
-    if (video) {
-      if (playingVideoId === itemId) {
-        // Pause if already playing
-        await video.pauseAsync();
-        setPlayingVideoId(null);
-      } else {
-        // Reset position to start and play video
-        await video.setPositionAsync(0);
-        await video.playAsync();
-        setPlayingVideoId(itemId);
-      }
+    } else {
+      setPlayingVideoId(itemId);
     }
   };
 
@@ -285,11 +264,6 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
                 onPress: () => {
                   // Stop video if playing
                   if (playingVideoId === item.id) {
-                    const video = videoRefs.current[item.id];
-                    if (video) {
-                      video.pauseAsync();
-                      video.setPositionAsync(0);
-                    }
                     setPlayingVideoId(null);
                   }
 
@@ -350,8 +324,12 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
   const renderCard = (item: AnalysisEntry, index: number) => {
     const isVideo = !!item.videoUri;
     const isPlaying = playingVideoId === item.id;
-    const titleText = 'Burger'; // placeholder title; real title could come from analysis
-    const subtitleText = index === 0 ? 'AI Calculating' : `${item.nutritionalInfo.calories} Kcal`;
+    const isAnalyzing = item.analysisStatus === 'analyzing';
+    const progress = item.analysisProgress || 0;
+    const titleText = item.mealName || '';
+    const subtitleText = isAnalyzing 
+      ? 'Analyzing...' 
+      : `${item.nutritionalInfo.calories} Kcal`;
     const translateX = getSwipePosition(item.id);
 
     return (
@@ -371,7 +349,7 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
             }
           )}
           onHandlerStateChange={(event) => handleSwipeStateChange(item, event)}
-          activeOffsetX={[-10, 10]}
+          activeOffsetX={[-10, 10]}  // Activate on both directions, but listener only handles left
           failOffsetY={[-5, 5]}
         >
           <Animated.View
@@ -384,18 +362,18 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
           >
             <TouchableOpacity
               style={styles.card}
-              onPress={() => nav.navigate('MealDetail', { item })}
-              activeOpacity={0.9}
+              onPress={() => {
+                if (!isAnalyzing) {
+                  nav.navigate('MealDetail', { item });
+                }
+              }}
+              activeOpacity={isAnalyzing ? 1 : 0.9}
+              disabled={isAnalyzing}
             >
           <View style={styles.mediaWrapper}>
             {isVideo && item.videoUri ? (
               <>
                 <Video
-                  ref={(ref) => {
-                    if (ref) {
-                      videoRefs.current[item.id] = ref;
-                    }
-                  }}
                   source={{ uri: item.videoUri }}
                   style={styles.media}
                   resizeMode={ResizeMode.COVER}
@@ -403,12 +381,8 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
                   isMuted={false}
                   shouldPlay={isPlaying}
                   useNativeControls={false}
-                  onPlaybackStatusUpdate={async (status) => {
+                  onPlaybackStatusUpdate={(status) => {
                     if (status.isLoaded && status.didJustFinish) {
-                      const video = videoRefs.current[item.id];
-                      if (video) {
-                        await video.setPositionAsync(0);
-                      }
                       setPlayingVideoId(null);
                     }
                   }}
@@ -457,7 +431,17 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
               <Text style={styles.cardTitle}>{titleText}</Text>
               <Text style={styles.cardSubtitle}>{subtitleText}</Text>
             </View>
-            <Group2065Icon width={18} height={18} />
+            {isAnalyzing ? (
+              <CircularProgressBar
+                progress={progress}
+                size={18}
+                strokeWidth={2}
+                color="#7BA21B"
+                backgroundColor="#E5E7EB"
+              />
+            ) : (
+              <Group2065Icon width={18} height={18} />
+            )}
           </View>
         </TouchableOpacity>
         </Animated.View>
@@ -529,8 +513,34 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
   // ONLY show TutorialScreen when canShowTutorial is EXPLICITLY true
   // This is the ONLY place TutorialScreen can render
   // All other conditions are checked in shouldShowLoader above
-  if (history.length === 0 && canShowTutorial) {
-    return <TutorialScreen />;
+  // Allow showing TutorialScreen even when history has items (for right swipe navigation)
+  if (canShowTutorial) {
+    return (
+      <TutorialScreen 
+        onBack={() => {
+          // Reset right swipe position animation
+          rightSwipePosition.current.setValue(0);
+          setIsReturningFromTutorial(true);
+          setCanShowTutorial(false);
+          // Refresh history when coming back to ensure data is up to date
+          if (user?.email) {
+            dispatch(loadHistory(user.email)).then(() => {
+              // Hide loader after history is loaded
+              setTimeout(() => {
+                setIsReturningFromTutorial(false);
+              }, 300); // Small delay to ensure smooth transition
+            });
+          } else {
+            setIsReturningFromTutorial(false);
+          }
+        }} 
+      />
+    );
+  }
+
+  // Show green loader when returning from TutorialScreen
+  if (isReturningFromTutorial) {
+    return <ScreenLoader isLoading={true} />;
   }
 
   // CRITICAL: Only calculate display values AFTER all loader checks pass
@@ -551,6 +561,29 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
     hour12: true,
   });
 
+  // Handle right swipe to navigate to TutorialScreen
+  const handleRightSwipeStateChange = (event: any) => {
+    const { state, translationX } = event.nativeEvent;
+    
+    if (state === State.END) {
+      const threshold = 100; // Swipe threshold to trigger navigation (positive for right swipe)
+      const currentValue = translationX || 0;
+      
+      if (currentValue > threshold) {
+        // Swiped right enough - show TutorialScreen
+        setCanShowTutorial(true);
+      }
+      
+      // Always reset position after gesture ends
+      Animated.spring(rightSwipePosition.current, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
@@ -562,17 +595,45 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
         onProfilePress={() => nav.navigate('Profile')}
       />
 
-      {/* List - Show only recent 5 entries */}
-      <ScrollView
-        style={styles.list}
-        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        decelerationRate="normal"
-        bounces={true}
-        scrollEventThrottle={16}
-        overScrollMode="never"
-        nestedScrollEnabled={true}
+      {/* Right Swipe Gesture Handler for TutorialScreen */}
+      <PanGestureHandler
+        onGestureEvent={Animated.event(
+          [{ nativeEvent: { translationX: rightSwipePosition.current } }],
+          { 
+            useNativeDriver: true,
+            listener: (event: any) => {
+              // Clamp to only allow right swipe (positive values)
+              const { translationX: tx } = event.nativeEvent;
+              if (tx < 0) {
+                rightSwipePosition.current.setValue(0);
+              }
+            }
+          }
+        )}
+        onHandlerStateChange={handleRightSwipeStateChange}
+        activeOffsetX={[-100, 10]}  // First value very high (never activates on left), second activates on right swipe
+        failOffsetY={[-5, 5]}
+        simultaneousHandlers={[]}  // Don't interfere with card gestures
       >
+        <Animated.View
+          style={[
+            { flex: 1 },
+            {
+              transform: [{ translateX: rightSwipePosition.current }],
+            },
+          ]}
+        >
+          {/* List - Show only recent 5 entries */}
+          <ScrollView
+            style={styles.list}
+            contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            decelerationRate="normal"
+            bounces={true}
+            scrollEventThrottle={16}
+            overScrollMode="never"
+            nestedScrollEnabled={true}
+          >
         {isLoading ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Loading...</Text>
@@ -585,7 +646,9 @@ export default function ResultsScreen({ navigation: navigationProp }: { navigati
         ) : history.length === 0 ? null : (
           history.slice(0, 5).map(renderCard)
         )}
-      </ScrollView>
+          </ScrollView>
+        </Animated.View>
+      </PanGestureHandler>
 
       {/* Bottom CTA - Fixed at Bottom */}
       <BottomButtonContainer>

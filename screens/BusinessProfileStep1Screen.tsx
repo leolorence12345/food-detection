@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,9 +11,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
   TextInput,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,6 +64,7 @@ export default function BusinessProfileStep1Screen({ navigation }: { navigation:
   const [isLookingUpPostcode, setIsLookingUpPostcode] = useState(false);
   // Initially hide address fields - only show after successful postcode lookup
   const [showAddressFields, setShowAddressFields] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   
   // Calculate bottom padding for ScrollView to account for button container
   // Button height (56) + container padding top (16) + container padding bottom (max(insets.bottom, 16)) + border (1)
@@ -367,28 +367,28 @@ export default function BusinessProfileStep1Screen({ navigation }: { navigation:
   }, [country]);
 
   const Content = (
-    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-      <View style={styles.contentWrapper}>
-        {/* Header */}
-        <View style={styles.header}>
-          <VectorBackButton onPress={() => safeGoBack(navigation, 'Consent')} />
-          <Text style={styles.headerTitle}>Create Profile</Text>
-          <View style={{ width: 40 }} />
-        </View>
+    <View style={styles.contentWrapper}>
+      {/* Header */}
+      <View style={styles.header}>
+        <VectorBackButton onPress={() => safeGoBack(navigation, 'Consent')} />
+        <Text style={styles.headerTitle}>Create Profile</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={scrollContentStyle}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          decelerationRate="normal"
-          bounces={true}
-          scrollEventThrottle={16}
-          overScrollMode="never"
-          nestedScrollEnabled={true}
-          contentInsetAdjustmentBehavior="automatic"
-        >
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="none"
+        decelerationRate="normal"
+        bounces={true}
+        scrollEventThrottle={16}
+        overScrollMode="never"
+        nestedScrollEnabled={true}
+        contentInsetAdjustmentBehavior="automatic"
+      >
           {/* Profile Image / Avatar Selector */}
           <View style={styles.profileImageContainer}>
             <TouchableOpacity onPress={handleAddAvatar} style={styles.imagePickerButton}>
@@ -519,14 +519,21 @@ export default function BusinessProfileStep1Screen({ navigation }: { navigation:
                     placeholder="District/County/State"
                     value={district}
                     onChangeText={setDistrict}
+                    onFocus={() => {
+                      // Scroll to end to ensure the input is visible above keyboard
+                      setTimeout(() => {
+                        if (scrollViewRef.current) {
+                          scrollViewRef.current.scrollToEnd({ animated: true });
+                        }
+                      }, 300);
+                    }}
                   />
                 </View>
               </>
             )}
           </View>
         </ScrollView>
-      </View>
-    </TouchableWithoutFeedback>
+    </View>
   );
 
   return (
@@ -536,7 +543,7 @@ export default function BusinessProfileStep1Screen({ navigation }: { navigation:
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={insets.top}
         >
           {Content}
         </KeyboardAvoidingView>

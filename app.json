@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "food-detection",
-    "slug": "food-detection",
+    "name": "UKcal",
+    "slug": "ukcal",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -18,9 +18,10 @@
       "bundleIdentifier": "com.firebeats.fooddetection",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs access to camera to take photos of food for analysis.",
-        "NSMicrophoneUsageDescription": "This app needs access to microphone for video recording.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select food images."
+        "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera.",
+        "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select food images.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -35,7 +36,14 @@
       "package": "com.firebeats.fooddetection",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
       ],
       "softwareKeyboardLayoutMode": "pan"
     },
@@ -44,7 +52,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "906896f5-db4f-47cc-85e8-7e58524a14d8"
+        "projectId": "816a41f0-67d2-4dd1-b982-c10c51e6dd37"
       }
     },
     "plugins": [
@@ -71,7 +79,9 @@
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
-    ]
+      ],
+      ["expo-video", {}]
+    ],
+    "owner": "leolorence12345"
   }
 }

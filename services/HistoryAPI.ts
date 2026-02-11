@@ -170,7 +170,7 @@ class MockHistoryAPI extends HistoryAPI {
 
     // Create a new array instead of mutating to avoid frozen array issues
     this.mockData[userEmail] = [newEntry, ...this.mockData[userEmail]];
-    this.saveToStorage(); // Save to localStorage
+    await this.saveToStorage(); // Ensure persistence completes before returning
 
     console.log(`[Mock API] Saved analysis for ${userEmail}:`, newEntry.id);
 
@@ -186,7 +186,7 @@ class MockHistoryAPI extends HistoryAPI {
     
     if (this.mockData[userEmail]) {
       this.mockData[userEmail] = this.mockData[userEmail].filter(entry => entry.id !== analysisId);
-      this.saveToStorage(); // Save to localStorage
+      await this.saveToStorage();
       console.log(`[Mock API] Deleted analysis ${analysisId} for ${userEmail}`);
     }
     
@@ -198,7 +198,7 @@ class MockHistoryAPI extends HistoryAPI {
     await new Promise(resolve => setTimeout(resolve, 300));
     
     this.mockData[userEmail] = [];
-    this.saveToStorage(); // Save to localStorage
+    await this.saveToStorage();
     console.log(`[Mock API] Cleared all history for ${userEmail}`);
     
     return { success: true };
@@ -238,7 +238,7 @@ class MockHistoryAPI extends HistoryAPI {
           ...this.mockData[userEmail].slice(index + 1),
         ];
         
-        this.saveToStorage(); // Save to localStorage
+        await this.saveToStorage(); // Ensure persistence completes so segmented_images etc. are saved
         console.log(`[Mock API] Updated analysis ${analysisId} for ${userEmail}`, updates);
         
         return {
@@ -267,10 +267,15 @@ class MockHistoryAPI extends HistoryAPI {
             },
             mealName: updates.mealName,
             dishContents: updates.dishContents,
+            segmented_images: updates.segmented_images,
+            feedback: updates.feedback,
+            job_id: updates.job_id,
+            analysisStatus: updates.analysisStatus,
+            analysisProgress: updates.analysisProgress,
           };
           
           this.mockData[userEmail].unshift(newEntry);
-          this.saveToStorage();
+          await this.saveToStorage();
           console.log(`[Mock API] Created new entry ${analysisId} for ${userEmail}`);
           
           return {

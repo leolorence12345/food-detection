@@ -3,11 +3,9 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
   TextInput,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
@@ -20,48 +18,56 @@ import VectorBackButton from '../components/VectorBackButton';
 import CustomButton from '../components/CustomButton';
 import BottomButtonContainer from '../components/BottomButtonContainer';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { deleteAccount } from '../store/slices/authSlice';
+import { sendDeleteAccountOTP, verifyDeleteAccountOTPAndDelete } from '../store/slices/authSlice';
 import { captureException } from '../utils/sentry';
 
 export default function DeleteAccountScreen() {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
-  
+  const authError = useAppSelector((state) => state.auth.error);
+  const isDeleting = useAppSelector((state) => state.auth.isLoading);
+
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSendingOTP, setIsSendingOTP] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
-  const [deleteOtp, setDeleteOtp] = useState<string | null>(null);
-  const [generatedOTP, setGeneratedOTP] = useState<string>('');
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
+  // Track keyboard visibility so button sits just above keyboard
   useEffect(() => {
-    // Send OTP email on mount
-    sendDeleteOTP();
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
-  // Load the generated OTP from storage (for testing)
   useEffect(() => {
-    const loadOTP = async () => {
-      if (!user?.email) return;
-      try {
-        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-        const storedOTP = await AsyncStorage.getItem(`delete_otp_${user.email}`);
-        if (storedOTP) {
-          setGeneratedOTP(storedOTP);
-          setDeleteOtp(storedOTP);
-          console.log('[DeleteAccount] Loaded test OTP from storage:', storedOTP);
-        }
-      } catch (error) {
-        console.error('[DeleteAccount] Error loading OTP:', error);
-      }
-    };
-    loadOTP();
-  }, [user?.email]);
+    if (!user?.email) return;
+    dispatch(sendDeleteAccountOTP(user.email));
+  }, [user?.email, dispatch]);
+
+  useEffect(() => {
+    if (authError) {
+      setErrorMessage(authError);
+    }
+  }, [authError]);
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -72,46 +78,28 @@ export default function DeleteAccountScreen() {
     }
   }, [resendCooldown]);
 
-  const sendDeleteOTP = async () => {
+  const handleSendOTP = async () => {
     if (!user?.email) {
       Alert.alert('Error', 'User email not found');
       navigation.goBack();
       return;
     }
+    if (resendCooldown > 0) return;
 
     setIsSendingOTP(true);
     setErrorMessage('');
-    
     try {
-      // Generate a test OTP and store it (similar to login OTP)
-      const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-      setDeleteOtp(generatedOTP);
-      setGeneratedOTP(generatedOTP);
-      
-      // Store OTP in AsyncStorage for testing (similar to login flow)
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      await AsyncStorage.setItem(`delete_otp_${user.email}`, generatedOTP);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('[DeleteAccount] OTP sent to:', user.email);
-      console.log('[DeleteAccount] Test OTP (for testing):', generatedOTP);
+      await dispatch(sendDeleteAccountOTP(user.email)).unwrap();
+      setResendCooldown(30);
     } catch (error) {
       console.error('[DeleteAccount] Error sending OTP:', error);
       captureException(error instanceof Error ? error : new Error(String(error)), {
         context: 'DeleteAccount - Send OTP',
       });
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
+      setErrorMessage('Failed to send verification code. Please try again.');
     } finally {
       setIsSendingOTP(false);
     }
-  };
-
-  const resendOTP = async () => {
-    if (resendCooldown > 0) return;
-    await sendDeleteOTP();
-    setResendCooldown(30);
   };
 
   const handleOTPChange = (value: string, index: number) => {
@@ -145,43 +133,25 @@ export default function DeleteAccountScreen() {
   };
 
   const validateOTP = async (enteredOtp: string) => {
-    if (!deleteOtp) {
-      setErrorMessage('Please request an OTP first');
-      return;
-    }
+    if (!user?.email) return;
 
-    if (enteredOtp === deleteOtp) {
-      setIsLoading(true);
-      try {
-        // Delete account via Redux (anonymizes email, preserves data)
-        const result = await dispatch(deleteAccount());
-        
-        if (deleteAccount.fulfilled.match(result)) {
-          Alert.alert(
-            'Account Deleted',
-            'Your account has been deleted.'
-          );
-          // Navigation will be handled by Redux state change
-        } else {
-          throw new Error(result.error?.message || 'Failed to delete account');
-        }
-      } catch (error) {
-        console.error('[DeleteAccount] Error deleting account:', error);
-        captureException(error instanceof Error ? error : new Error(String(error)), {
-          context: 'DeleteAccount - Delete Account',
-        });
-        setErrorMessage('Failed to delete account. Please try again.');
-      } finally {
-        setIsLoading(false);
+    try {
+      const result = await dispatch(
+        verifyDeleteAccountOTPAndDelete({ email: user.email, otp: enteredOtp })
+      ).unwrap();
+      if (result?.success) {
+        Alert.alert('Account Deleted', 'Your account has been deleted.');
       }
-    } else {
+    } catch (error) {
+      console.error('[DeleteAccount] Error verifying OTP or deleting account:', error);
+      captureException(error instanceof Error ? error : new Error(String(error)), {
+        context: 'DeleteAccount - Verify OTP',
+      });
       setErrorMessage('Sorry! This is not a valid OTP. Please try again.');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     }
   };
-
-  const isIOS = Platform.OS === 'ios';
 
   const Content = (
     <TouchableWithoutFeedback
@@ -196,10 +166,13 @@ export default function DeleteAccountScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Content */}
+        {/* Content - extra bottom padding when keyboard open so OTP can scroll up */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 100 + (isKeyboardVisible ? keyboardHeight : 0) },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -235,7 +208,7 @@ export default function DeleteAccountScreen() {
                       keyboardType="number-pad"
                       maxLength={1}
                       selectTextOnFocus
-                      editable={!isLoading}
+                      editable={!isDeleting}
                     />
                   </View>
                 ))}
@@ -244,17 +217,9 @@ export default function DeleteAccountScreen() {
               {/* Instructions - Below OTP boxes */}
               <View style={styles.instructionsContainer}>
                 {errorMessage === '' && (
-                  <>
-                    <Text style={styles.instructionsText}>
-                      Please check your email and enter the OTP
-                    </Text>
-                    {generatedOTP && (
-                      <View style={styles.testOtpContainer}>
-                        <Text style={styles.testOtpLabel}>Test OTP:</Text>
-                        <Text style={styles.testOtpValue}>{generatedOTP}</Text>
-                      </View>
-                    )}
-                  </>
+                  <Text style={styles.instructionsText}>
+                    Please check your email and enter the verification code
+                  </Text>
                 )}
               </View>
 
@@ -266,8 +231,11 @@ export default function DeleteAccountScreen() {
           </View>
         </ScrollView>
 
-        {/* Resend OTP Button - Fixed at Bottom */}
-        <BottomButtonContainer>
+        {/* Resend OTP Button - Positioned exactly above keyboard (no KAV, use measured height) */}
+        <BottomButtonContainer
+          compactBottom={isKeyboardVisible}
+          keyboardHeight={keyboardHeight}
+        >
           <CustomButton
             variant={resendCooldown === 0 && !isSendingOTP ? 'primary' : 'disabled'}
             btnLabel={
@@ -279,12 +247,12 @@ export default function DeleteAccountScreen() {
                 `Resend One-Time-Password (${resendCooldown} sec)`
               )
             }
-            onPress={resendOTP}
+            onPress={handleSendOTP}
           />
         </BottomButtonContainer>
 
         {/* Loading Overlay */}
-        {isLoading && (
+        {isDeleting && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#7BA21B" />
           </View>
@@ -296,18 +264,7 @@ export default function DeleteAccountScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      {isIOS ? (
-        <KeyboardAvoidingView
-          behavior="padding"
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
-        >
-          {Content}
-        </KeyboardAvoidingView>
-      ) : (
-        Content
-      )}
+      {Content}
     </SafeAreaView>
   );
 }
@@ -367,24 +324,6 @@ const styles = StyleSheet.create({
     color: '#7BA21B',
     textAlign: 'center',
     marginBottom: 16,
-  },
-  testOtpContainer: {
-    backgroundColor: '#F3F4F6',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  testOtpLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  testOtpValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    letterSpacing: 4,
   },
   otpContainer: {
     flexDirection: 'row',

@@ -305,7 +305,7 @@ class NutritionRAG:
         
         return results
     
-    def get_nutrition_for_food(self, food_name, volume_ml, mass_g=None):
+    def get_nutrition_for_food(self, food_name, volume_ml, mass_g=None, quantity=1):
         """
         Get complete nutrition information for a food item
         
@@ -313,14 +313,16 @@ class NutritionRAG:
             food_name: Name of the food (e.g., "spaghetti")
             volume_ml: Volume in milliliters
             mass_g: Optional mass in grams (e.g. from Gemini estimated_quantity_grams). If provided and > 0, used instead of volume*density.
+            quantity: Number of identical items (e.g. 6 for "6 kiwi slices"). Used for display only; mass_g is total for all.
             
         Returns:
-            dict with mass, calories, density, sources
+            dict with mass, calories, density, sources, quantity
         """
+        display_name = f"{quantity} × {food_name}" if quantity and int(quantity) > 1 else food_name
         if mass_g is not None and mass_g > 0:
-            print(f"\n  Looking up nutrition for: {food_name} (mass: {mass_g:.1f}g from Gemini)")
+            print(f"\n  Looking up nutrition for: {display_name} (mass: {mass_g:.1f}g from Gemini)")
         else:
-            print(f"\n  Looking up nutrition for: {food_name} ({volume_ml:.1f}ml)")
+            print(f"\n  Looking up nutrition for: {display_name} ({volume_ml:.1f}ml)")
         
         # Search for density (used only when mass_g not provided)
         density_results = self.search(food_name, k=3)
@@ -386,8 +388,16 @@ class NutritionRAG:
         # Calculate total calories
         total_calories = (mass_g / 100) * calories_per_100g
         
+        q = 1
+        try:
+            if quantity is not None and int(quantity) >= 1:
+                q = int(quantity)
+        except (TypeError, ValueError):
+            pass
+        
         return {
             'food_name': food_name,
+            'quantity': q,
             'volume_ml': volume_ml,
             'density_g_per_ml': density,
             'density_source': density_source,
@@ -509,6 +519,9 @@ def analyze_meal_nutrition(volume_json_path, output_path=None):
             stats = item_data.get('statistics', {})
             max_volume = stats.get('max_volume_ml', 0)
             gemini_grams_g = stats.get('gemini_grams_g')
+            quantity = stats.get('quantity', 1)
+            if quantity is None or quantity < 1:
+                quantity = 1
         else:
             continue
         
@@ -522,16 +535,17 @@ def analyze_meal_nutrition(volume_json_path, output_path=None):
             print(f"\n  Skipping tiny item: {label} ({max_volume:.1f}ml)")
             continue
         
-        # Get nutrition info (use Gemini mass when available)
-        nutrition = rag.get_nutrition_for_food(label, max_volume, mass_g=gemini_grams_g)
+        # Get nutrition info (use Gemini mass when available; quantity for display)
+        nutrition = rag.get_nutrition_for_food(label, max_volume, mass_g=gemini_grams_g, quantity=quantity)
         nutrition_results['items'].append(nutrition)
         
         total_volume += max_volume
         total_mass += nutrition['mass_g']
         total_calories += nutrition['total_calories']
         
-        # Print results
-        print(f"\n  {label.upper()}")
+        # Print results (show count when > 1)
+        display_label = f"{quantity} × {label}" if quantity > 1 else label
+        print(f"\n  {display_label.upper()}")
         print(f"    Volume: {max_volume:.1f} ml")
         print(f"    Density: {nutrition['density_g_per_ml']:.2f} g/ml (from {nutrition['density_source']}, similarity: {nutrition['density_similarity']:.2f})")
         print(f"    Mass: {nutrition['mass_g']:.1f} g")

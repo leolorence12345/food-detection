@@ -24,7 +24,7 @@ import VectorBackButton from '../components/VectorBackButton';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import MultiSelect from '../components/MultiSelect';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { userService, BusinessProfile } from '../services/UserService';
 import { captureException } from '../utils/sentry';
@@ -41,6 +41,7 @@ interface MultiSelectState {
 }
 
 export default function EditProfileScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
@@ -455,6 +456,7 @@ export default function EditProfileScreen() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
         >
           <ScrollView showsVerticalScrollIndicator={false}>
             <View>
@@ -609,7 +611,7 @@ export default function EditProfileScreen() {
                       }
                       arrayList={businessCategory.list}
                       selectedArrayList={businessCategory.selectedList}
-                      multiEnable={false}
+                      multiEnable={true}
                     />
                   </View>
 
@@ -627,7 +629,7 @@ export default function EditProfileScreen() {
                       }
                       arrayList={cuisineType.list}
                       selectedArrayList={cuisineType.selectedList}
-                      multiEnable={false}
+                      multiEnable={true}
                     />
                   </View>
 
@@ -645,7 +647,7 @@ export default function EditProfileScreen() {
                       }
                       arrayList={primaryServingStyle.list}
                       selectedArrayList={primaryServingStyle.selectedList}
-                      multiEnable={false}
+                      multiEnable={true}
                     />
                   </View>
 
@@ -681,7 +683,7 @@ export default function EditProfileScreen() {
                       }
                       arrayList={standardMealSize.list}
                       selectedArrayList={standardMealSize.selectedList}
-                      multiEnable={false}
+                      multiEnable={true}
                     />
                   </View>
 

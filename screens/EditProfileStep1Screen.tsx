@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,9 +14,9 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput as PaperTextInput } from 'react-native-paper';
@@ -42,8 +42,10 @@ interface MultiSelectState {
   selectedList: MultiSelectItem[];
 }
 
-export default function EditProfileStep1Screen({ navigation: navigationProp }: { navigation?: any }) {
-  const navigation = navigationProp || useNavigation();
+export default function EditProfileStep1Screen() {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const route = useRoute();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const profileState = useAppSelector((state) => state.profile);
@@ -56,6 +58,9 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
   const [postalCode, setPostalCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLookingUpPostcode, setIsLookingUpPostcode] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const districtInputContainerRef = useRef<View>(null);
+  const businessAddressInputContainerRef = useRef<View>(null);
 
   // UK Cities/Towns list
   const ukTowns = [
@@ -78,19 +83,32 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
   });
 
   // Load profile data from Redux when screen is focused
+  // Only load if profile is not already loaded to avoid triggering AppLoader
   useFocusEffect(
     React.useCallback(() => {
-      dispatch(loadProfile());
-    }, [dispatch])
+      try {
+        // Only load profile if it's not already loaded to prevent App from showing AppLoader
+        if (!profileState.businessProfile && !profileState.isLoading) {
+          console.log('[EditProfileStep1] Profile not loaded, loading now...');
+          dispatch(loadProfile());
+        } else {
+          console.log('[EditProfileStep1] Profile already loaded, skipping loadProfile');
+        }
+      } catch (error) {
+        console.error('[EditProfileStep1] Error loading profile in useFocusEffect:', error);
+      }
+    }, [dispatch, profileState.businessProfile, profileState.isLoading])
   );
 
   // Load existing business profile data
   useEffect(() => {
+    let isMounted = true;
     const loadProfileData = async () => {
-      const profile = profileState.businessProfile;
-      
-      // First, try to load from saved Step 1 data (in case user navigated back)
       try {
+        const profile = profileState.businessProfile;
+        
+        // First, try to load from saved Step 1 data (in case user navigated back)
+        try {
         const savedData = await AsyncStorage.getItem('edit_profile_step1');
         if (savedData) {
           const data = JSON.parse(savedData);
@@ -177,16 +195,25 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
         }
       }
       
-      // Load profile image and avatar
-      if (profileState.profileImage) {
-        setProfileImage(profileState.profileImage);
-      }
-      if (profileState.avatar) {
-        setAvatar(profileState.avatar);
+        // Load profile image and avatar
+        if (profileState.profileImage && isMounted) {
+          setProfileImage(profileState.profileImage);
+        }
+        if (profileState.avatar && isMounted) {
+          setAvatar(profileState.avatar);
+        }
+      } catch (error) {
+        console.error('[EditProfileStep1] Error in loadProfileData:', error);
       }
     };
 
-    loadProfileData();
+    loadProfileData().catch((error) => {
+      console.error('[EditProfileStep1] Error in loadProfileData:', error);
+    });
+    
+    return () => {
+      isMounted = false;
+    };
   }, [profileState.businessProfile, profileState.profileImage, profileState.avatar]);
 
   const selectProfileImage = async () => {
@@ -415,7 +442,15 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
       await AsyncStorage.setItem('edit_profile_step1', JSON.stringify(step1Data));
       
       // Navigate to Step 2
-      navigation.navigate('EditProfileStep2');
+      console.log('[EditProfileStep1] Navigating to EditProfileStep2');
+      console.log('[EditProfileStep1] Navigation object:', navigation);
+      try {
+        navigation.navigate('EditProfileStep2' as never);
+        console.log('[EditProfileStep1] Navigation to Step 2 successful');
+      } catch (navError) {
+        console.error('[EditProfileStep1] Navigation error:', navError);
+        Alert.alert('Navigation Error', 'Unable to navigate to next step. Please try again.');
+      }
     } catch (error) {
       console.error('Error saving data:', error);
       Alert.alert('Error', 'Failed to save data. Please try again.');
@@ -448,30 +483,27 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
   }, [navigation]);
 
   const Content = (
-    <TouchableWithoutFeedback onPress={handleDismissKeyboard}>
-      <View style={{ flex: 1 }}>
-        {/* Header */}
-        <View style={styles.header}>
+    <View style={{ flex: 1 }}>
+      {/* Header */}
+      <View style={styles.header}>
           <VectorBackButton onPress={handleBackPress} />
           <Text style={styles.headerTitle}>Edit Profile</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView 
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={scrollContentStyle}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
           contentInsetAdjustmentBehavior="automatic"
-          decelerationRate={Platform.OS === 'android' ? 'normal' : 'fast'}
-          bounces={Platform.OS === 'ios'}
-          scrollEventThrottle={Platform.OS === 'android' ? 16 : 32}
-          overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
-          nestedScrollEnabled={Platform.OS === 'android'}
-          removeClippedSubviews={Platform.OS === 'android' ? false : true}
-          scrollEnabled={true}
-          fadingEdgeLength={0}
+          decelerationRate="normal"
+          bounces={true}
+          scrollEventThrottle={16}
+          overScrollMode="never"
+          nestedScrollEnabled={true}
         >
           {/* Profile Image / Avatar Selector */}
           <View style={styles.profileImageContainer}>
@@ -564,11 +596,38 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
             </View>
 
             {/* Business Address */}
-            <View style={styles.inputWrapper}>
+            <View ref={businessAddressInputContainerRef} style={styles.inputWrapper}>
               <CustomInput
                 placeholder="Business Address"
                 value={businessAddress}
                 onChangeText={setBusinessAddress}
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                }}
+                onFocus={() => {
+                  // Scroll to ensure the input is visible above keyboard
+                  setTimeout(() => {
+                    if (businessAddressInputContainerRef.current && scrollViewRef.current) {
+                      businessAddressInputContainerRef.current.measureLayout(
+                        scrollViewRef.current as any,
+                        (x, y) => {
+                          // Scroll to show input with padding above
+                          scrollViewRef.current?.scrollTo({
+                            y: Math.max(0, y - 100),
+                            animated: true,
+                          });
+                        },
+                        () => {
+                          // Fallback: scroll to end
+                          scrollViewRef.current?.scrollToEnd({ animated: true });
+                        }
+                      );
+                    } else if (scrollViewRef.current) {
+                      scrollViewRef.current.scrollToEnd({ animated: true });
+                    }
+                  }, 300);
+                }}
               />
             </View>
 
@@ -610,17 +669,43 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
             </View>
 
             {/* District/County/State */}
-            <View style={styles.inputWrapper}>
+            <View ref={districtInputContainerRef} style={styles.inputWrapper}>
               <CustomInput
                 placeholder="District/County/State"
                 value={district}
                 onChangeText={setDistrict}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                }}
+                onFocus={() => {
+                  // Scroll to ensure the input is visible above keyboard
+                  setTimeout(() => {
+                    if (districtInputContainerRef.current && scrollViewRef.current) {
+                      districtInputContainerRef.current.measureLayout(
+                        scrollViewRef.current as any,
+                        (x, y) => {
+                          // Scroll to show input with padding above
+                          scrollViewRef.current?.scrollTo({
+                            y: Math.max(0, y - 100),
+                            animated: true,
+                          });
+                        },
+                        () => {
+                          // Fallback: scroll to end
+                          scrollViewRef.current?.scrollToEnd({ animated: true });
+                        }
+                      );
+                    } else if (scrollViewRef.current) {
+                      scrollViewRef.current.scrollToEnd({ animated: true });
+                    }
+                  }, 300);
+                }}
               />
             </View>
           </View>
         </ScrollView>
-      </View>
-    </TouchableWithoutFeedback>
+    </View>
   );
 
   return (
@@ -630,7 +715,7 @@ export default function EditProfileStep1Screen({ navigation: navigationProp }: {
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={insets.top}
         >
           {Content}
         </KeyboardAvoidingView>

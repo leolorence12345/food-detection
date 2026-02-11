@@ -150,7 +150,9 @@ const defaultScreenOptions = {
   ...smoothTransitionConfig,
 };
 
-function MainApp() {
+// RootNavigator - conditionally renders different stacks based on app state
+// This is inside a single NavigationContainer, so it never remounts
+function RootNavigator() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const isLoading = useAppSelector((state) => state.auth.isLoading);
@@ -158,10 +160,10 @@ function MainApp() {
   const businessProfile = useAppSelector((state) => state.profile.businessProfile);
   const userAccount = useAppSelector((state) => state.profile.userAccount);
   const isProfileLoading = useAppSelector((state) => state.profile.isLoading);
+  const showWelcome = useAppSelector((state) => state.app.showWelcome);
   const [hasConsented, setHasConsented] = useState<boolean | null>(null);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const [isCheckingConsent, setIsCheckingConsent] = useState(true);
-  const navigationRef = useRef<any>(null);
   const previousAuthState = useRef<boolean>(isAuthenticated);
 
   // Load history and profile when user logs in
@@ -187,16 +189,8 @@ function MainApp() {
       setHasCompletedProfile(null);
       setIsCheckingConsent(false);
 
-      // Reset navigation to EmailLogin screen when logging out
-      if (previousAuthState.current && !isAuthenticated && navigationRef.current) {
-        console.log('[App] 🔄 Resetting navigation to EmailLogin');
-        navigationRef.current.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'EmailLogin' }],
-          })
-        );
-      }
+      // Note: Navigation reset is handled by RootNavigator's conditional rendering
+      // No need to manually reset navigation here
     }
     previousAuthState.current = isAuthenticated;
   }, [isAuthenticated]);
@@ -288,11 +282,24 @@ function MainApp() {
     return <AppLoader />;
   }
 
-  if (!isAuthenticated) {
-    console.log('[App] Showing login flow');
+  // Show welcome screen if not authenticated and welcome hasn't been dismissed
+  if (!isAuthenticated && showWelcome) {
+    console.log('[RootNavigator] Showing welcome flow');
     return (
-      <NavigationContainer key="onboarding" ref={navigationRef}>
-        <Stack.Navigator screenOptions={defaultScreenOptions}>
+      <Stack.Navigator screenOptions={defaultScreenOptions} initialRouteName="Welcome">
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+        <Stack.Screen name="EmailLogin" component={EmailLoginScreen} />
+        <Stack.Screen name="OTPScreen" component={OTPScreen} />
+        <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  if (!isAuthenticated) {
+    console.log('[RootNavigator] Showing login flow');
+    return (
+      <Stack.Navigator screenOptions={defaultScreenOptions}>
           <Stack.Screen name="EmailLogin" component={EmailLoginScreen} />
           <Stack.Screen name="OTPScreen" component={OTPScreen} />
           <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
@@ -323,16 +330,14 @@ function MainApp() {
           <Stack.Screen name="ImageText" component={ImageTextTab} />
           <Stack.Screen name="VideoText" component={VideoTextTab} />
         </Stack.Navigator>
-      </NavigationContainer>
     );
   }
 
   // If authenticated but hasn't consented or completed profile, show onboarding
   if (!hasConsented || !hasCompletedProfile) {
-    console.log('[App] Showing onboarding flow (consent/profile)');
+    console.log('[RootNavigator] Showing onboarding flow (consent/profile)');
     return (
-      <NavigationContainer key="onboarding" ref={navigationRef}>
-        <Stack.Navigator screenOptions={defaultScreenOptions} initialRouteName={!hasConsented ? "Consent" : "BusinessProfileStep1"}>
+      <Stack.Navigator screenOptions={defaultScreenOptions} initialRouteName={!hasConsented ? "Consent" : "BusinessProfileStep1"}>
           <Stack.Screen name="EmailLogin" component={EmailLoginScreen} />
           <Stack.Screen name="OTPScreen" component={OTPScreen} />
           <Stack.Screen name="Consent">
@@ -358,8 +363,12 @@ function MainApp() {
           <Stack.Screen name="Results" component={ResultsScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-          <Stack.Screen name="EditProfileStep1" component={EditProfileStep1Screen} />
-          <Stack.Screen name="EditProfileStep2" component={EditProfileStep2Screen} />
+          <Stack.Screen name="EditProfileStep1">
+            {({ navigation, route }) => <EditProfileStep1Screen navigation={navigation} route={route} />}
+          </Stack.Screen>
+          <Stack.Screen name="EditProfileStep2">
+            {({ navigation, route }) => <EditProfileStep2Screen navigation={navigation} route={route} />}
+          </Stack.Screen>
           <Stack.Screen name="SendFeedback" component={SendFeedbackScreen} />
           <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
           <Stack.Screen name="WithdrawParticipation" component={WithdrawParticipationScreen} />
@@ -371,7 +380,6 @@ function MainApp() {
           <Stack.Screen name="ImageText" component={ImageTextTab} />
           <Stack.Screen name="VideoText" component={VideoTextTab} />
         </Stack.Navigator>
-      </NavigationContainer>
     );
   }
 
@@ -405,7 +413,7 @@ function MainApp() {
     });
   }
   return (
-    <NavigationContainer key="authenticated" ref={navigationRef}>
+    <>
       <StatusBar style="dark" />
       <Stack.Navigator screenOptions={defaultScreenOptions} initialRouteName="Results">
         <Stack.Screen name="Results" component={ResultsScreen} />
@@ -427,7 +435,7 @@ function MainApp() {
         <Stack.Screen name="ImageText" component={ImageTextTab} />
         <Stack.Screen name="VideoText" component={VideoTextTab} />
       </Stack.Navigator>
-    </NavigationContainer>
+    </>
   );
 }
 
@@ -437,6 +445,10 @@ function AppContent() {
   const showSplash = useAppSelector((state) => state.app.showSplash);
   const showWelcome = useAppSelector((state) => state.app.showWelcome);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  
+  // Single NavigationContainer at the top level - never remounts
+  // MUST be called before any conditional returns to maintain hook order
+  const navigationRef = useRef<any>(null);
 
   // Load user from storage on app start
   useEffect(() => {
@@ -465,23 +477,8 @@ function AppContent() {
     }} />;
   }
 
-  // Show welcome screen if not authenticated and welcome hasn't been dismissed
-  if (!isAuthenticated && showWelcome) {
-    console.log('[AppContent] Rendering Welcome NavigationContainer - showWelcome:', showWelcome, 'isAuthenticated:', isAuthenticated);
-    return (
-      <NavigationContainer key={`welcome-nav-${showWelcome}`}>
-        <Stack.Navigator screenOptions={defaultScreenOptions} initialRouteName="Welcome">
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="EmailLogin" component={EmailLoginScreen} />
-          <Stack.Screen name="OTPScreen" component={OTPScreen} />
-          <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
-          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
-  }
-
-  console.log('[AppContent] Rendering MainApp, showWelcome:', showWelcome, 'isAuthenticated:', isAuthenticated);
+  console.log('[AppContent] Rendering app, showWelcome:', showWelcome, 'isAuthenticated:', isAuthenticated);
+  
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={{
@@ -498,7 +495,9 @@ function AppContent() {
         dark: false,
       }}>
         <SafeAreaProvider>
-          <MainApp />
+          <NavigationContainer ref={navigationRef}>
+            <RootNavigator />
+          </NavigationContainer>
         </SafeAreaProvider>
       </PaperProvider>
     </GestureHandlerRootView>

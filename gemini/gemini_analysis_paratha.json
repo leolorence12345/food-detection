@@ -1,0 +1,185 @@
+{
+  "image_path": "/Users/leo/FoodProject/food-detection/paratha.jpeg",
+  "image_name": "paratha.jpeg",
+  "raw_response": "```json\n{\n  \"main_food_item\": \"Indian Vegetarian Meal Platter (Thali style)\",\n  \"cuisine_type\": \"Indian\",\n  \"cooking_method\": \"Baking/Grilling (Naan), Boiling/Steaming (Rice, Dal), Saut\u00e9ing/Stewing (Baingan Bharta, Dal)\",\n  \"visible_ingredients\": [\n    {\n      \"name\": \"Garlic Naan / Herb Naan\",\n      \"bounding_box\": [60, 145, 490, 480],\n      \"estimated_quantity\": \"1 piece\"\n    },\n    {\n      \"name\": \"Plain Naan / Roti\",\n      \"bounding_box\": [440, 110, 780, 550],\n      \"estimated_quantity\": \"1 piece\"\n    },\n    {\n      \"name\": \"Basmati Rice\",\n      \"bounding_box\": [630, 300, 860, 590],\n      \"estimated_quantity\": \"~1 cup cooked\"\n    },\n    {\n      \"name\": \"Baingan Bharta (Eggplant Curry)\",\n      \"bounding_box\": [210, 470, 630, 780],\n      \"estimated_quantity\": \"~0.75 - 1 cup\"\n    },\n    {\n      \"name\": \"Dal (Lentil Soup)\",\n      \"bounding_box\": [190, 810, 910, 1210],\n      \"estimated_quantity\": \"~1.5 - 2 cups\"\n    },\n    {\n      \"name\": \"Dried Red Chili (in Dal)\",\n      \"bounding_box\": [330, 980, 510, 1160],\n      \"estimated_quantity\": \"1 piece\"\n    },\n    {\n      \"name\": \"Dried Red Chili (in Dal)\",\n      \"bounding_box\": [500, 950, 710, 1140],\n      \"estimated_quantity\": \"1 piece\"\n    },\n    {\n      \"name\": \"Chopped Cilantro/Herbs (on Naan)\",\n      \"bounding_box\": [180, 290, 380, 430],\n      \"estimated_quantity\": \"small amount for garnish\"\n    },\n    {\n      \"name\": \"Plate (white, ribbed)\",\n      \"bounding_box\": [0, 0, 940, 830],\n      \"estimated_quantity\": \"1 plate\"\n    },\n    {\n      \"name\": \"Bowl (white)\",\n      \"bounding_box\": [110, 760, 970, 1280],\n      \"estimated_quantity\": \"1 bowl\"\n    }\n  ],\n  \"ingredient_breakdown\": [\n    \"Naan:\",\n    \"  - All-purpose flour (Maida)\",\n    \"  - Water\",\n    \"  - Yeast or baking powder\",\n    \"  - Sugar\",\n    \"  - Salt\",\n    \"  - Cooking oil or Ghee (clarified butter)\",\n    \"  - Fresh cilantro (coriander leaves)\",\n    \"  - Minced garlic (for garlic naan)\",\n    \"  - Kalonji (nigella seeds, optional)\",\n    \"Basmati Rice:\",\n    \"  - Basmati rice\",\n    \"  - Water\",\n    \"  - Salt (optional)\",\n    \"Baingan Bharta (Eggplant Curry):\",\n    \"  - Eggplant (brinjal)\",\n    \"  - Onions\",\n    \"  - Tomatoes\",\n    \"  - Ginger-garlic paste\",\n    \"  - Green chilies\",\n    \"  - Cooking oil (e.g., vegetable oil, mustard oil)\",\n    \"  - Turmeric powder\",\n    \"  - Red chili powder\",\n    \"  - Coriander powder\",\n    \"  - Cumin powder\",\n    \"  - Garam masala\",\n    \"  - Salt\",\n    \"  - Fresh cilantro\",\n    \"Dal (Lentil Soup):\",\n    \"  - Split pigeon peas (Toor dal) or mixed lentils\",\n    \"  - Water\",\n    \"  - Onions\",\n    \"  - Tomatoes\",\n    \"  - Ginger-garlic paste\",\n    \"  - Green chilies\",\n    \"  - Corn kernels (visible)\",\n    \"  - Cooking oil or Ghee\",\n    \"  - Mustard seeds\",\n    \"  - Cumin seeds\",\n    \"  - Asafoetida (Hing, optional)\",\n    \"  - Curry leaves (optional)\",\n    \"  - Turmeric powder\",\n    \"  - Red chili powder\",\n    \"  - Coriander powder\",\n    \"  - Salt\",\n    \"  - Fresh cilantro\",\n    \"  - Dried whole red chilies (visible)\"\n  ],\n  \"nutritional_info\": {\n    \"calories\": \"Approximately 700-1000 kcal (for a typical serving of the entire meal)\",\n    \"macronutrients\": {\n      \"protein\": \"25-35g (from lentils, naan, vegetables)\",\n      \"carbohydrates\": \"100-150g (primary sources: naan, rice, lentils)\",\n      \"fats\": \"20-40g (from cooking oils/ghee, some naturally in ingredients)\"\n    },\n    \"micronutrients\": {\n      \"vitamins\": \"Good source of B vitamins (B1, B3, B6, Folate) from lentils and whole grains. Vitamin A, C, K from vegetables and spices.\",\n      \"minerals\": \"Good source of Iron, Magnesium, Potassium, Zinc (from lentils, vegetables, whole grains)\"\n    },\n    \"fiber_content\": \"10-20g (high fiber from lentils, vegetables, and potentially whole wheat components in naan)\"\n  },\n  \"allergens\": [\n    \"Wheat (in Naan)\",\n    \"Dairy (if Ghee or Yogurt is used in Naan or Dal preparation)\",\n    \"Mustard (if Mustard seeds or Mustard oil are used in tempering)\"\n  ],\n  \"dietary_tags\": [\n    \"Vegetarian\",\n    \"Potentially Vegan (if no dairy/ghee is used)\",\n    \"Not Gluten-Free (due to Naan)\",\n    \"Potentially Dairy-Free (if no dairy/ghee is used)\"\n  ],\n  \"additional_notes\": \"This is a typical North Indian vegetarian meal, often served as a 'thali' where various dishes are presented together. It offers a balanced nutritional profile with complex carbohydrates, plant-based protein, and fiber. The spice level can range from mild to medium-hot, depending on the preparation and amount of chilies used. Sodium content might be high based on preparation, and overall caloric density depends on the quantity of oil or ghee used.\"\n}\n```",
+  "parsed": true,
+  "main_food_item": "Indian Vegetarian Meal Platter (Thali style)",
+  "cuisine_type": "Indian",
+  "cooking_method": "Baking/Grilling (Naan), Boiling/Steaming (Rice, Dal), Saut\u00e9ing/Stewing (Baingan Bharta, Dal)",
+  "visible_ingredients": [
+    {
+      "name": "Garlic Naan / Herb Naan",
+      "bounding_box": [
+        60,
+        145,
+        490,
+        480
+      ],
+      "estimated_quantity": "1 piece"
+    },
+    {
+      "name": "Plain Naan / Roti",
+      "bounding_box": [
+        440,
+        110,
+        780,
+        550
+      ],
+      "estimated_quantity": "1 piece"
+    },
+    {
+      "name": "Basmati Rice",
+      "bounding_box": [
+        630,
+        300,
+        860,
+        590
+      ],
+      "estimated_quantity": "~1 cup cooked"
+    },
+    {
+      "name": "Baingan Bharta (Eggplant Curry)",
+      "bounding_box": [
+        210,
+        470,
+        630,
+        780
+      ],
+      "estimated_quantity": "~0.75 - 1 cup"
+    },
+    {
+      "name": "Dal (Lentil Soup)",
+      "bounding_box": [
+        190,
+        810,
+        910,
+        1210
+      ],
+      "estimated_quantity": "~1.5 - 2 cups"
+    },
+    {
+      "name": "Dried Red Chili (in Dal)",
+      "bounding_box": [
+        330,
+        980,
+        510,
+        1160
+      ],
+      "estimated_quantity": "1 piece"
+    },
+    {
+      "name": "Dried Red Chili (in Dal)",
+      "bounding_box": [
+        500,
+        950,
+        710,
+        1140
+      ],
+      "estimated_quantity": "1 piece"
+    },
+    {
+      "name": "Chopped Cilantro/Herbs (on Naan)",
+      "bounding_box": [
+        180,
+        290,
+        380,
+        430
+      ],
+      "estimated_quantity": "small amount for garnish"
+    },
+    {
+      "name": "Plate (white, ribbed)",
+      "bounding_box": [
+        0,
+        0,
+        940,
+        830
+      ],
+      "estimated_quantity": "1 plate"
+    },
+    {
+      "name": "Bowl (white)",
+      "bounding_box": [
+        110,
+        760,
+        970,
+        1280
+      ],
+      "estimated_quantity": "1 bowl"
+    }
+  ],
+  "ingredient_breakdown": [
+    "Naan:",
+    "  - All-purpose flour (Maida)",
+    "  - Water",
+    "  - Yeast or baking powder",
+    "  - Sugar",
+    "  - Salt",
+    "  - Cooking oil or Ghee (clarified butter)",
+    "  - Fresh cilantro (coriander leaves)",
+    "  - Minced garlic (for garlic naan)",
+    "  - Kalonji (nigella seeds, optional)",
+    "Basmati Rice:",
+    "  - Basmati rice",
+    "  - Water",
+    "  - Salt (optional)",
+    "Baingan Bharta (Eggplant Curry):",
+    "  - Eggplant (brinjal)",
+    "  - Onions",
+    "  - Tomatoes",
+    "  - Ginger-garlic paste",
+    "  - Green chilies",
+    "  - Cooking oil (e.g., vegetable oil, mustard oil)",
+    "  - Turmeric powder",
+    "  - Red chili powder",
+    "  - Coriander powder",
+    "  - Cumin powder",
+    "  - Garam masala",
+    "  - Salt",
+    "  - Fresh cilantro",
+    "Dal (Lentil Soup):",
+    "  - Split pigeon peas (Toor dal) or mixed lentils",
+    "  - Water",
+    "  - Onions",
+    "  - Tomatoes",
+    "  - Ginger-garlic paste",
+    "  - Green chilies",
+    "  - Corn kernels (visible)",
+    "  - Cooking oil or Ghee",
+    "  - Mustard seeds",
+    "  - Cumin seeds",
+    "  - Asafoetida (Hing, optional)",
+    "  - Curry leaves (optional)",
+    "  - Turmeric powder",
+    "  - Red chili powder",
+    "  - Coriander powder",
+    "  - Salt",
+    "  - Fresh cilantro",
+    "  - Dried whole red chilies (visible)"
+  ],
+  "nutritional_info": {
+    "calories": "Approximately 700-1000 kcal (for a typical serving of the entire meal)",
+    "macronutrients": {
+      "protein": "25-35g (from lentils, naan, vegetables)",
+      "carbohydrates": "100-150g (primary sources: naan, rice, lentils)",
+      "fats": "20-40g (from cooking oils/ghee, some naturally in ingredients)"
+    },
+    "micronutrients": {
+      "vitamins": "Good source of B vitamins (B1, B3, B6, Folate) from lentils and whole grains. Vitamin A, C, K from vegetables and spices.",
+      "minerals": "Good source of Iron, Magnesium, Potassium, Zinc (from lentils, vegetables, whole grains)"
+    },
+    "fiber_content": "10-20g (high fiber from lentils, vegetables, and potentially whole wheat components in naan)"
+  },
+  "allergens": [
+    "Wheat (in Naan)",
+    "Dairy (if Ghee or Yogurt is used in Naan or Dal preparation)",
+    "Mustard (if Mustard seeds or Mustard oil are used in tempering)"
+  ],
+  "dietary_tags": [
+    "Vegetarian",
+    "Potentially Vegan (if no dairy/ghee is used)",
+    "Not Gluten-Free (due to Naan)",
+    "Potentially Dairy-Free (if no dairy/ghee is used)"
+  ],
+  "additional_notes": "This is a typical North Indian vegetarian meal, often served as a 'thali' where various dishes are presented together. It offers a balanced nutritional profile with complex carbohydrates, plant-based protein, and fiber. The spice level can range from mild to medium-hot, depending on the preparation and amount of chilies used. Sodium content might be high based on preparation, and overall caloric density depends on the quantity of oil or ghee used."
+}

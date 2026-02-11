@@ -1,0 +1,104 @@
+{
+  "image_path": "food101_images/breakfast_burrito/breakfast_burrito_031501.jpg",
+  "image_name": "breakfast_burrito_031501.jpg",
+  "raw_response": "```json\n{\n  \"main_food_item\": \"Breakfast Burrito\",\n  \"cuisine_type\": \"Tex-Mex / American\",\n  \"cooking_method\": \"Assembly (ingredients are pre-cooked and then wrapped in a tortilla)\",\n  \"visible_ingredients\": [\n    {\n      \"name\": \"Flour Tortilla\",\n      \"bounding_box\": [0, 192, 381, 470],\n      \"estimated_quantity\": \"1 large tortilla\"\n    },\n    {\n      \"name\": \"Scrambled Eggs\",\n      \"bounding_box\": [17, 215, 370, 420],\n      \"estimated_quantity\": \"approx. 2-3 large eggs\"\n    },\n    {\n      \"name\": \"Diced Potatoes\",\n      \"bounding_box\": [100, 250, 340, 390],\n      \"estimated_quantity\": \"approx. 1/2 cup, visible throughout the filling\"\n    },\n    {\n      \"name\": \"Cooked Meat (Sausage/Bacon bits)\",\n      \"bounding_box\": [140, 280, 340, 390],\n      \"estimated_quantity\": \"approx. 1/4 cup, visible throughout the filling\"\n    },\n    {\n      \"name\": \"Spices/Herbs (dark specks)\",\n      \"bounding_box\": [17, 215, 370, 420],\n      \"estimated_quantity\": \"trace amounts, sprinkled on eggs/potatoes\"\n    },\n    {\n      \"name\": \"Sauce (in container)\",\n      \"bounding_box\": [315, 45, 380, 195],\n      \"estimated_quantity\": \"approx. 2-3 tablespoons\"\n    }\n  ],\n  \"ingredient_breakdown\": [\n    \"Flour Tortilla (enriched wheat flour, water, vegetable shortening/lard, salt, baking powder, dough conditioners)\",\n    \"Scrambled Eggs (whole eggs, possibly milk/cream, salt, black pepper, cooked with butter/oil)\",\n    \"Diced Potatoes (potatoes, cooking oil, salt, black pepper, possibly garlic powder, onion powder, paprika)\",\n    \"Cooked Meat (likely pork sausage: pork, salt, spices like sage, black pepper, red pepper; or bacon bits)\",\n    \"Cheese (likely melted into the filling, e.g., cheddar, Monterey Jack, or a blend)\",\n    \"Sauce (in small container: appears light-colored, possibly sour cream, a creamy mild salsa, or a mild hot sauce)\",\n    \"Aromatics (likely minced onions, garlic saut\u00e9ed with other ingredients)\",\n    \"Cooking Fats (vegetable oil, butter, lard used for cooking eggs, potatoes, meat)\",\n    \"Seasonings (salt, black pepper, cumin, chili powder, garlic powder, onion powder, oregano, paprika)\"\n  ],\n  \"nutritional_info\": {\n    \"calories\": \"650-950 kcal\",\n    \"macronutrients\": {\n      \"protein\": \"25-45g\",\n      \"carbohydrates\": \"60-90g\",\n      \"fats\": \"35-65g (including 15-30g saturated fat)\"\n    },\n    \"micronutrients\": \"Good source of B vitamins, Vitamin A, Vitamin D, Iron, Calcium, Potassium. High in Sodium.\",\n    \"fiber_content\": \"4-8g\"\n  },\n  \"allergens\": [\n    \"Wheat\",\n    \"Eggs\",\n    \"Dairy (if cheese or dairy-based sauce is present)\",\n    \"Soy (if soy oil is used in tortilla or cooking)\"\n  ],\n  \"dietary_tags\": [\n    \"Not Vegetarian\",\n    \"Not Vegan\",\n    \"Not Gluten-Free\"\n  ],\n  \"additional_notes\": \"This is a substantial and hearty meal, likely intended for breakfast or brunch. The exact nutritional profile can vary significantly based on the specific ingredients, portion size, and preparation methods (e.g., amount of oil, type of meat, amount of cheese). It is likely high in sodium. The small container in the background contains a condiment for the burrito.\"\n}\n```",
+  "parsed": true,
+  "main_food_item": "Breakfast Burrito",
+  "cuisine_type": "Tex-Mex / American",
+  "cooking_method": "Assembly (ingredients are pre-cooked and then wrapped in a tortilla)",
+  "visible_ingredients": [
+    {
+      "name": "Flour Tortilla",
+      "bounding_box": [
+        0,
+        192,
+        381,
+        470
+      ],
+      "estimated_quantity": "1 large tortilla"
+    },
+    {
+      "name": "Scrambled Eggs",
+      "bounding_box": [
+        17,
+        215,
+        370,
+        420
+      ],
+      "estimated_quantity": "approx. 2-3 large eggs"
+    },
+    {
+      "name": "Diced Potatoes",
+      "bounding_box": [
+        100,
+        250,
+        340,
+        390
+      ],
+      "estimated_quantity": "approx. 1/2 cup, visible throughout the filling"
+    },
+    {
+      "name": "Cooked Meat (Sausage/Bacon bits)",
+      "bounding_box": [
+        140,
+        280,
+        340,
+        390
+      ],
+      "estimated_quantity": "approx. 1/4 cup, visible throughout the filling"
+    },
+    {
+      "name": "Spices/Herbs (dark specks)",
+      "bounding_box": [
+        17,
+        215,
+        370,
+        420
+      ],
+      "estimated_quantity": "trace amounts, sprinkled on eggs/potatoes"
+    },
+    {
+      "name": "Sauce (in container)",
+      "bounding_box": [
+        315,
+        45,
+        380,
+        195
+      ],
+      "estimated_quantity": "approx. 2-3 tablespoons"
+    }
+  ],
+  "ingredient_breakdown": [
+    "Flour Tortilla (enriched wheat flour, water, vegetable shortening/lard, salt, baking powder, dough conditioners)",
+    "Scrambled Eggs (whole eggs, possibly milk/cream, salt, black pepper, cooked with butter/oil)",
+    "Diced Potatoes (potatoes, cooking oil, salt, black pepper, possibly garlic powder, onion powder, paprika)",
+    "Cooked Meat (likely pork sausage: pork, salt, spices like sage, black pepper, red pepper; or bacon bits)",
+    "Cheese (likely melted into the filling, e.g., cheddar, Monterey Jack, or a blend)",
+    "Sauce (in small container: appears light-colored, possibly sour cream, a creamy mild salsa, or a mild hot sauce)",
+    "Aromatics (likely minced onions, garlic saut\u00e9ed with other ingredients)",
+    "Cooking Fats (vegetable oil, butter, lard used for cooking eggs, potatoes, meat)",
+    "Seasonings (salt, black pepper, cumin, chili powder, garlic powder, onion powder, oregano, paprika)"
+  ],
+  "nutritional_info": {
+    "calories": "650-950 kcal",
+    "macronutrients": {
+      "protein": "25-45g",
+      "carbohydrates": "60-90g",
+      "fats": "35-65g (including 15-30g saturated fat)"
+    },
+    "micronutrients": "Good source of B vitamins, Vitamin A, Vitamin D, Iron, Calcium, Potassium. High in Sodium.",
+    "fiber_content": "4-8g"
+  },
+  "allergens": [
+    "Wheat",
+    "Eggs",
+    "Dairy (if cheese or dairy-based sauce is present)",
+    "Soy (if soy oil is used in tortilla or cooking)"
+  ],
+  "dietary_tags": [
+    "Not Vegetarian",
+    "Not Vegan",
+    "Not Gluten-Free"
+  ],
+  "additional_notes": "This is a substantial and hearty meal, likely intended for breakfast or brunch. The exact nutritional profile can vary significantly based on the specific ingredients, portion size, and preparation methods (e.g., amount of oil, type of meat, amount of cheese). It is likely high in sodium. The small container in the background contains a condiment for the burrito."
+}

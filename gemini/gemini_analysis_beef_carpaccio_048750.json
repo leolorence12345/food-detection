@@ -1,0 +1,93 @@
+{
+  "image_path": "food101_images/beef_carpaccio/beef_carpaccio_048750.jpg",
+  "image_name": "beef_carpaccio_048750.jpg",
+  "raw_response": "```json\n{\n  \"main_food_item\": \"Beef Carpaccio\",\n  \"cuisine_type\": \"Italian\",\n  \"cooking_method\": \"Raw (uncooked meat preparation), assembled\",\n  \"visible_ingredients\": [\n    {\n      \"name\": \"Beef (thinly sliced)\",\n      \"bounding_box\": [35, 105, 490, 485],\n      \"estimated_quantity\": \"Approx. 4-6 very thin slices (about 4 oz / 110g)\"\n    },\n    {\n      \"name\": \"Arugula (Rocket)\",\n      \"bounding_box\": [120, 150, 480, 480],\n      \"estimated_quantity\": \"Approx. 1 cup, loosely packed\"\n    },\n    {\n      \"name\": \"Shaved Parmesan Cheese (Parmigiano-Reggiano)\",\n      \"bounding_box\": [140, 110, 460, 400],\n      \"estimated_quantity\": \"Approx. 1/4 - 1/2 cup shaved (about 25-50g)\"\n    },\n    {\n      \"name\": \"Creamy Dressing/Sauce (e.g., aioli or mustard-based mayonnaise)\",\n      \"bounding_box\": [60, 290, 420, 480],\n      \"estimated_quantity\": \"Approx. 2-3 tablespoons\"\n    }\n  ],\n  \"ingredient_breakdown\": [\n    \"High-quality lean beef (e.g., sirloin, tenderloin, eye of round), very thinly sliced\",\n    \"Fresh arugula (rocket) leaves\",\n    \"Parmigiano-Reggiano cheese, shaved\",\n    \"Extra virgin olive oil (likely drizzled over the meat and/or in the sauce)\",\n    \"Lemon juice (for seasoning and/or in the sauce)\",\n    \"Salt (sea salt preferred)\",\n    \"Freshly ground black pepper\",\n    \"Creamy Sauce (potentially contains: mayonnaise base - egg yolk, vegetable oil, lemon juice/vinegar; Dijon mustard; garlic; seasonings)\"\n  ],\n  \"nutritional_info\": {\n    \"calories\": \"450-600 kcal\",\n    \"macronutrients\": {\n      \"protein\": \"35-45g\",\n      \"carbohydrates\": \"2-5g\",\n      \"fats\": \"35-50g (mostly monounsaturated and saturated fats from olive oil, cheese, and sauce)\",\n      \"fiber\": \"1-2g\"\n    },\n    \"micronutrients\": {\n      \"vitamins\": \"Vitamin B12, Vitamin K, Vitamin A, Vitamin C, Folate, Niacin\",\n      \"minerals\": \"Iron, Zinc, Calcium, Phosphorus, Selenium, Sodium (can be high)\"\n    }\n  },\n  \"allergens\": [\n    \"Dairy (Parmesan cheese)\",\n    \"Egg (if sauce is mayonnaise/aioli based)\",\n    \"Sulfites (if mustard or white wine vinegar is used in the sauce)\"\n  ],\n  \"dietary_tags\": [\n    \"Not Vegetarian\",\n    \"Not Vegan\",\n    \"Gluten-Free (typically, verify sauce ingredients)\",\n    \"Low-Carb\",\n    \"Keto-Friendly\"\n  ],\n  \"additional_notes\": [\n    \"This dish is a classic Italian appetizer, typically served chilled.\",\n    \"The meat is served raw, which carries a risk of foodborne illness, especially for vulnerable populations (pregnant women, elderly, immunocompromised individuals).\",\n    \"Nutritional values can vary significantly based on the portion size of beef, the amount of olive oil used, and the specific composition/quantity of the creamy sauce.\",\n    \"High in protein and healthy fats, but can also be high in sodium due to cheese and seasoning.\",\n    \"The quality of ingredients, especially the beef and olive oil, is paramount for the taste and authenticity of Carpaccio.\"\n  ]\n}\n```",
+  "parsed": true,
+  "main_food_item": "Beef Carpaccio",
+  "cuisine_type": "Italian",
+  "cooking_method": "Raw (uncooked meat preparation), assembled",
+  "visible_ingredients": [
+    {
+      "name": "Beef (thinly sliced)",
+      "bounding_box": [
+        35,
+        105,
+        490,
+        485
+      ],
+      "estimated_quantity": "Approx. 4-6 very thin slices (about 4 oz / 110g)"
+    },
+    {
+      "name": "Arugula (Rocket)",
+      "bounding_box": [
+        120,
+        150,
+        480,
+        480
+      ],
+      "estimated_quantity": "Approx. 1 cup, loosely packed"
+    },
+    {
+      "name": "Shaved Parmesan Cheese (Parmigiano-Reggiano)",
+      "bounding_box": [
+        140,
+        110,
+        460,
+        400
+      ],
+      "estimated_quantity": "Approx. 1/4 - 1/2 cup shaved (about 25-50g)"
+    },
+    {
+      "name": "Creamy Dressing/Sauce (e.g., aioli or mustard-based mayonnaise)",
+      "bounding_box": [
+        60,
+        290,
+        420,
+        480
+      ],
+      "estimated_quantity": "Approx. 2-3 tablespoons"
+    }
+  ],
+  "ingredient_breakdown": [
+    "High-quality lean beef (e.g., sirloin, tenderloin, eye of round), very thinly sliced",
+    "Fresh arugula (rocket) leaves",
+    "Parmigiano-Reggiano cheese, shaved",
+    "Extra virgin olive oil (likely drizzled over the meat and/or in the sauce)",
+    "Lemon juice (for seasoning and/or in the sauce)",
+    "Salt (sea salt preferred)",
+    "Freshly ground black pepper",
+    "Creamy Sauce (potentially contains: mayonnaise base - egg yolk, vegetable oil, lemon juice/vinegar; Dijon mustard; garlic; seasonings)"
+  ],
+  "nutritional_info": {
+    "calories": "450-600 kcal",
+    "macronutrients": {
+      "protein": "35-45g",
+      "carbohydrates": "2-5g",
+      "fats": "35-50g (mostly monounsaturated and saturated fats from olive oil, cheese, and sauce)",
+      "fiber": "1-2g"
+    },
+    "micronutrients": {
+      "vitamins": "Vitamin B12, Vitamin K, Vitamin A, Vitamin C, Folate, Niacin",
+      "minerals": "Iron, Zinc, Calcium, Phosphorus, Selenium, Sodium (can be high)"
+    }
+  },
+  "allergens": [
+    "Dairy (Parmesan cheese)",
+    "Egg (if sauce is mayonnaise/aioli based)",
+    "Sulfites (if mustard or white wine vinegar is used in the sauce)"
+  ],
+  "dietary_tags": [
+    "Not Vegetarian",
+    "Not Vegan",
+    "Gluten-Free (typically, verify sauce ingredients)",
+    "Low-Carb",
+    "Keto-Friendly"
+  ],
+  "additional_notes": [
+    "This dish is a classic Italian appetizer, typically served chilled.",
+    "The meat is served raw, which carries a risk of foodborne illness, especially for vulnerable populations (pregnant women, elderly, immunocompromised individuals).",
+    "Nutritional values can vary significantly based on the portion size of beef, the amount of olive oil used, and the specific composition/quantity of the creamy sauce.",
+    "High in protein and healthy fats, but can also be high in sodium due to cheese and seasoning.",
+    "The quality of ingredients, especially the beef and olive oil, is paramount for the taste and authenticity of Carpaccio."
+  ]
+}

@@ -1,13 +1,27 @@
   // Nutrition Video Analysis API Service
 // Integrates with the AWS-deployed nutrition analysis backend
+// Override with EXPO_PUBLIC_NUTRITION_API_URL to point at local/different backend (e.g. http://10.0.2.2:8000 for Android emulator)
 
-const API_BASE_URL = 'https://qx3i66fa87.execute-api.us-east-1.amazonaws.com/v1';
+const API_BASE_URL =
+  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_NUTRITION_API_URL) ||
+  'https://qx3i66fa87.execute-api.us-east-1.amazonaws.com/v1';
 
 export interface NutritionItem {
   food_name: string;
   mass_g: number;
   volume_ml?: number;
   total_calories?: number;
+}
+
+export interface SegmentedImage {
+  frame: string;
+  url: string;
+  key: string;
+}
+
+export interface SegmentedImages {
+  overlay_urls?: SegmentedImage[];
+  mask_urls?: SegmentedImage[];
 }
 
 export interface NutritionAnalysisResult {
@@ -18,6 +32,7 @@ export interface NutritionAnalysisResult {
   completed_at?: string;
   filename?: string;
   download_url?: string;
+  segmented_images?: SegmentedImages;  // New: URLs to segmented images
   nutrition_summary?: {
     total_food_volume_ml: number;
     total_mass_g: number;
@@ -182,10 +197,16 @@ export class NutritionAnalysisAPI {
 
   /**
    * Get the results of a completed job
+   * @param jobId - The job ID
+   * @param detailed - Whether to fetch detailed results (default: true to get segmented images)
    */
-  async getResults(jobId: string): Promise<NutritionAnalysisResult | null> {
+  async getResults(jobId: string, detailed: boolean = true): Promise<NutritionAnalysisResult | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/results/${jobId}`);
+      // Request detailed results to get segmented images
+      const url = detailed 
+        ? `${this.baseUrl}/api/results/${jobId}?detailed=true`
+        : `${this.baseUrl}/api/results/${jobId}`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Results fetch failed: ${response.statusText}`);
@@ -193,6 +214,11 @@ export class NutritionAnalysisAPI {
 
       const data = await response.json();
       console.log('[Nutrition API] Results received:', data);
+      
+      // Check if segmented images are already in the response (from Lambda)
+      if (data.segmented_images) {
+        console.log('[Nutrition API] Segmented images URLs found in response');
+      }
 
       // Fetch detailed results if download URL is available
       if (data.download_url) {
@@ -212,23 +238,33 @@ export class NutritionAnalysisAPI {
             console.log('[Nutrition API] Raw detailed results:', JSON.stringify(detailedResults, null, 2));
             data.detailed_results = detailedResults;
 
-            // Extract items array from detailed results and map to NutritionItem format
-            if (detailedResults.items && detailedResults.items.length > 0) {
-              console.log('[Nutrition API] Detected items:');
-              data.items = detailedResults.items.map((item: any) => ({
-                food_name: item.food_name || item.name || 'Unknown',
-                mass_g: item.mass_g || 0,
-                volume_ml: item.volume_ml,
-                total_calories: item.total_calories || item.calories || 0,
-              }));
-
-              data.items.forEach((item: NutritionItem, index: number) => {
-                console.log(`  ${index + 1}. ${item.food_name} - ${Math.round(item.total_calories || 0)} kcal - ${Math.round(item.mass_g)}g`);
-              });
-            } else if (detailedResults.nutrition?.items && detailedResults.nutrition.items.length > 0) {
-              // Alternative path: items might be nested under 'nutrition'
-              console.log('[Nutrition API] Found items in nutrition object');
-              data.items = detailedResults.nutrition.items.map((item: any) => ({
+            // Extract items array from detailed results - check multiple possible locations
+            let itemsArray: any[] | null = null;
+            
+            // Location 1: detected_items (top-level)
+            if (detailedResults.detected_items && detailedResults.detected_items.length > 0) {
+              console.log('[Nutrition API] Found items in detected_items');
+              itemsArray = detailedResults.detected_items;
+            }
+            // Location 2: items (top-level)
+            else if (detailedResults.items && detailedResults.items.length > 0) {
+              console.log('[Nutrition API] Found items at top level');
+              itemsArray = detailedResults.items;
+            }
+            // Location 3: full_results.nutrition.items
+            else if (detailedResults.full_results?.nutrition?.items && detailedResults.full_results.nutrition.items.length > 0) {
+              console.log('[Nutrition API] Found items in full_results.nutrition.items');
+              itemsArray = detailedResults.full_results.nutrition.items;
+            }
+            // Location 4: nutrition.items
+            else if (detailedResults.nutrition?.items && detailedResults.nutrition.items.length > 0) {
+              console.log('[Nutrition API] Found items in nutrition.items');
+              itemsArray = detailedResults.nutrition.items;
+            }
+            
+            if (itemsArray && itemsArray.length > 0) {
+              console.log('[Nutrition API] Processing', itemsArray.length, 'detected items:');
+              data.items = itemsArray.map((item: any) => ({
                 food_name: item.food_name || item.name || 'Unknown',
                 mass_g: item.mass_g || 0,
                 volume_ml: item.volume_ml,
@@ -240,6 +276,58 @@ export class NutritionAnalysisAPI {
               });
             } else {
               console.warn('[Nutrition API] No items array found in detailed results');
+            }
+            
+            // Extract nutrition_summary from detailed results - check multiple locations
+            let nutritionSummary: any = null;
+            
+            // Location 1: full_results.nutrition.summary
+            if (detailedResults.full_results?.nutrition?.summary) {
+              console.log('[Nutrition API] Found nutrition summary in full_results.nutrition.summary');
+              nutritionSummary = detailedResults.full_results.nutrition.summary;
+            }
+            // Location 2: nutrition.summary
+            else if (detailedResults.nutrition?.summary) {
+              console.log('[Nutrition API] Found nutrition summary in nutrition.summary');
+              nutritionSummary = detailedResults.nutrition.summary;
+            }
+            // Location 3: meal_summary
+            else if (detailedResults.meal_summary && Object.keys(detailedResults.meal_summary).length > 0) {
+              console.log('[Nutrition API] Found nutrition summary in meal_summary');
+              nutritionSummary = detailedResults.meal_summary;
+            }
+            
+            // Update data.nutrition_summary if we found it
+            if (nutritionSummary && Object.keys(nutritionSummary).length > 0) {
+              data.nutrition_summary = {
+                total_food_volume_ml: nutritionSummary.total_food_volume_ml || 0,
+                total_mass_g: nutritionSummary.total_mass_g || 0,
+                total_calories_kcal: nutritionSummary.total_calories_kcal || 0,
+                num_food_items: nutritionSummary.num_food_items || (itemsArray?.length || 0),
+              };
+              console.log('[Nutrition API] Extracted nutrition_summary:', data.nutrition_summary);
+            } else if (itemsArray && itemsArray.length > 0) {
+              // Calculate summary from items if not available
+              const totalCalories = itemsArray.reduce((sum: number, item: any) => 
+                sum + (item.total_calories || item.calories || 0), 0);
+              const totalMass = itemsArray.reduce((sum: number, item: any) => 
+                sum + (item.mass_g || 0), 0);
+              const totalVolume = itemsArray.reduce((sum: number, item: any) => 
+                sum + (item.volume_ml || 0), 0);
+              
+              data.nutrition_summary = {
+                total_food_volume_ml: totalVolume,
+                total_mass_g: totalMass,
+                total_calories_kcal: totalCalories,
+                num_food_items: itemsArray.length,
+              };
+              console.log('[Nutrition API] Calculated nutrition_summary from items:', data.nutrition_summary);
+            }
+            
+            // Extract segmented images from detailed results if available
+            if (detailedResults.segmented_images || detailedResults.tracking?.objects) {
+              // Segmented images might be in detailed_results or we need to construct URLs
+              console.log('[Nutrition API] Segmented images data found in detailed results');
             }
           } else {
             const errorText = await detailsResponse.text();
@@ -367,9 +455,9 @@ export class NutritionAnalysisAPI {
         throw new Error('Failed to confirm upload');
       }
 
-      // Step 4: Poll for results
+      // Step 4: Poll for results (always request detailed to get segmented images)
       onProgress?.('Processing video...');
-      return await this.pollForResults(uploadData.job_id, onProgress);
+      return await this.pollForResults(uploadData.job_id, onProgress, 60, 5000, true);
     } catch (error) {
       console.error('[Nutrition API] Video analysis failed:', error);
       return null;
@@ -407,9 +495,9 @@ export class NutritionAnalysisAPI {
         throw new Error('Failed to confirm upload');
       }
 
-      // Step 4: Poll for results
+      // Step 4: Poll for results (always request detailed to get segmented images)
       onProgress?.('Processing image...');
-      return await this.pollForResults(uploadData.job_id, onProgress);
+      return await this.pollForResults(uploadData.job_id, onProgress, 60, 5000, true);
     } catch (error) {
       console.error('[Nutrition API] Image analysis failed:', error);
       return null;
@@ -418,12 +506,14 @@ export class NutritionAnalysisAPI {
 
   /**
    * Poll for job completion
+   * @param detailed - Whether to request detailed results (default: true to get segmented images)
    */
   private async pollForResults(
     jobId: string,
     onProgress?: (status: string) => void,
     maxAttempts: number = 60,
-    intervalMs: number = 5000
+    intervalMs: number = 5000,
+    detailed: boolean = true
   ): Promise<NutritionAnalysisResult | null> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, intervalMs));
@@ -435,7 +525,7 @@ export class NutritionAnalysisAPI {
 
       if (status.status === 'completed') {
         onProgress?.('Analysis complete!');
-        return await this.getResults(jobId);
+        return await this.getResults(jobId, detailed);
       }
 
       if (status.status === 'failed') {
@@ -449,5 +539,5 @@ export class NutritionAnalysisAPI {
   }
 }
 
-// Export singleton instance
+// Export singleton instance (uses API_BASE_URL; set EXPO_PUBLIC_NUTRITION_API_URL to override)
 export const nutritionAnalysisAPI = new NutritionAnalysisAPI();

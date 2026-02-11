@@ -20,6 +20,19 @@ export interface FeedbackData {
   timestamp: string;
 }
 
+export interface SegmentedImage {
+  frame: string;
+  url: string;
+  key: string;
+  type?: 'overlay' | 'mask';
+  object_id?: string;
+}
+
+export interface SegmentedImages {
+  overlay_urls?: SegmentedImage[];
+  mask_urls?: SegmentedImage[];
+}
+
 export interface AnalysisEntry {
   id: string;
   type: 'image' | 'video';
@@ -37,6 +50,10 @@ export interface AnalysisEntry {
   mealName?: string;
   dishContents?: DishContent[];
   feedback?: FeedbackData;
+  segmented_images?: SegmentedImages;  // Segmented image URLs (may expire; use job_id to refetch)
+  job_id?: string;  // Nutrition API job id – used to refetch fresh segmented_images URLs when they expire
+  analysisStatus?: 'analyzing' | 'completed' | 'failed';  // Analysis status
+  analysisProgress?: number;  // Progress from 0 to 100
 }
 
 interface HistoryState {
@@ -122,6 +139,15 @@ const historySlice = createSlice({
     clearHistoryLocal: (state) => {
       state.history = [];
     },
+    updateAnalysisProgress: (state, action: PayloadAction<{ id: string; progress: number; status?: 'analyzing' | 'completed' | 'failed' }>) => {
+      const index = state.history.findIndex(item => item.id === action.payload.id);
+      if (index !== -1) {
+        state.history[index].analysisProgress = action.payload.progress;
+        if (action.payload.status) {
+          state.history[index].analysisStatus = action.payload.status;
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     // Load history
@@ -204,6 +230,6 @@ const historySlice = createSlice({
   },
 });
 
-export const { clearError, clearHistoryLocal } = historySlice.actions;
+export const { clearError, clearHistoryLocal, updateAnalysisProgress } = historySlice.actions;
 export default historySlice.reducer;
 

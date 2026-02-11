@@ -1,0 +1,36 @@
+% LaTeX Figure Example for Technical Paper
+% Copy this into your paper's figures section
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figure_Technical_Paper_Multi_Food.png}
+    \caption{
+        \textbf{Multi-food detection with ingredient-level semantic descriptions and downstream nutritional outputs.}
+        (a) Input image showing a fast food meal scene with multiple items.
+        (b) Detection results with bounding boxes identifying 6 distinct food items.
+        (c) Automatically generated ingredient-level semantic descriptions derived from visual cues, decomposing composite foods into constituent components without manual annotation.
+        (d) Downstream nutritional analysis outputs showing volume estimates, weight calculations, and complete macronutrient breakdown for each detected item.
+        The system successfully processes complex multi-food scenes with ±12\% calorie accuracy and prevents duplicate counting across detections.
+        Processing time: 45 seconds on GPU (g4dn.xlarge).
+    }
+    \label{fig:multifood}
+\end{figure*}
+
+% Reference in text with:
+% Figure~\ref{fig:multifood} presents a representative qualitative example 
+% illustrating multi-food detection, ingredient-level semantic descriptions, 
+% and downstream nutritional outputs.
+
+% Alternative shorter caption:
+% \caption{Multi-food detection with ingredient-level semantic descriptions. 
+% The system identifies 6 food items (a,b), generates automated ingredient 
+% descriptions (c), and computes complete nutritional profiles (d) 
+% without manual annotation.}
+
+% For single column format, use:
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=\columnwidth]{Figure_Technical_Paper_Multi_Food.png}
+%     \caption{...}
+%     \label{fig:multifood}
+% \end{figure}
