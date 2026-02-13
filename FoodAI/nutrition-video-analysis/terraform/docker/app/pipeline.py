@@ -203,17 +203,17 @@ class NutritionVideoPipeline:
         max_duration = getattr(self.config, "VIDEO_MAX_DURATION_SECONDS", None)
         
         if num_frames_to_load is not None and num_frames_to_load > 0 and max_duration is not None:
+            # Use first max_duration seconds when video is longer (sample from that window)
+            window_sec = min(duration_sec, max_duration)
             if duration_sec > max_duration:
-                cap.release()
-                raise ValueError(
-                    f"Video duration {duration_sec:.1f}s exceeds maximum {max_duration}s. "
-                    "Only videos up to 5 seconds are supported."
+                logger.warning(
+                    f"Video duration {duration_sec:.1f}s exceeds maximum {max_duration}s. Sampling {num_frames_to_load} frames from first {max_duration}s only."
                 )
             # Exactly N frames evenly spaced in time (same prompt logic as single image; 5 frames for no-duplicate handling)
-            logger.info(f"Video: {fps:.1f}fps, {total_frames} total frames, {duration_sec:.1f}s — loading exactly {num_frames_to_load} frames")
+            logger.info(f"Video: {fps:.1f}fps, {total_frames} total frames, {duration_sec:.1f}s — loading exactly {num_frames_to_load} frames (window {window_sec:.1f}s)")
             frames = []
             for i in range(num_frames_to_load):
-                t_sec = (i / max(1, num_frames_to_load - 1)) * max(0.0, duration_sec - 0.001)
+                t_sec = (i / max(1, num_frames_to_load - 1)) * max(0.0, window_sec - 0.001)
                 frame_idx = min(int(t_sec * fps), total_frames - 1) if total_frames > 0 else 0
                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
                 ret, frame = cap.read()
@@ -225,6 +225,11 @@ class NutritionVideoPipeline:
                 frames.append(cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB))
             cap.release()
             if len(frames) != num_frames_to_load:
+                if len(frames) >= 1:
+                    logger.warning(
+                        f"Requested {num_frames_to_load} frames but video only yielded {len(frames)} (short or low frame count). Proceeding with {len(frames)} frame(s)."
+                    )
+                    return frames
                 raise ValueError(f"Could not load {num_frames_to_load} frames from video (got {len(frames)})")
             return frames
         

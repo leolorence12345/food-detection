@@ -480,7 +480,6 @@ export default function PreviewScreen({ imageUri, videoUri, onBack, onAnalyze }:
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        // Use safe-area offset so content (including the text box) moves up with the keyboard
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
@@ -492,109 +491,96 @@ export default function PreviewScreen({ imageUri, videoUri, onBack, onAnalyze }:
               onProfilePress={() => navigation.navigate('Profile' as never)}
             />
 
-          {/* Main Content */}
-          <ScrollView
-            ref={scrollViewRef}
-            style={{ flex: 1 }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: isKeyboardVisible ? 200 : 100 }]}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            contentInsetAdjustmentBehavior="automatic"
-            showsVerticalScrollIndicator={false}
-            decelerationRate="normal"
-            bounces={true}
-            scrollEventThrottle={16}
-            overScrollMode="never"
-            nestedScrollEnabled={true}
-          >
-            {/* Preview with Dark Overlay */}
-            <View style={styles.previewContainer}>
-              {imageUri ? (
-                <OptimizedImage 
-                  source={{ uri: imageUri }} 
-                  style={styles.previewMedia} 
-                  resizeMode="cover"
-                  cachePolicy="memory-disk"
-                  priority="high"
-                />
-              ) : videoUri ? (
-                <PreviewVideo uri={videoUri} style={styles.previewMedia} />
-              ) : null}
-              
-              {/* Dark Overlay */}
-              <View style={styles.darkOverlay} />
-              
-              {/* Back Button - Top Left */}
-              <View style={styles.backButtonContainer}>
-                <View style={styles.backButtonBackground}>
-                  <VectorBackButtonCircle onPress={onBack} size={24} />
+            {/* Main Content - only this area scrolls */}
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.scrollView}
+              contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentInsetAdjustmentBehavior="automatic"
+              showsVerticalScrollIndicator={false}
+              decelerationRate="normal"
+              bounces={true}
+              scrollEventThrottle={16}
+              overScrollMode="never"
+              nestedScrollEnabled={true}
+            >
+              {/* Preview with Dark Overlay */}
+              <View style={styles.previewContainer}>
+                {imageUri ? (
+                  <OptimizedImage 
+                    source={{ uri: imageUri }} 
+                    style={styles.previewMedia} 
+                    resizeMode="cover"
+                    cachePolicy="memory-disk"
+                    priority="high"
+                  />
+                ) : videoUri ? (
+                  <PreviewVideo uri={videoUri} style={styles.previewMedia} />
+                ) : null}
+                
+                {/* Dark Overlay */}
+                <View style={styles.darkOverlay} />
+                
+                {/* Back Button - Top Left */}
+                <View style={styles.backButtonContainer}>
+                  <View style={styles.backButtonBackground}>
+                    <VectorBackButtonCircle onPress={onBack} size={24} />
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* Text Input Field */}
-            <View ref={inputContainerRef} style={styles.inputContainer}>
-              <TextInput
-                ref={textInputRef}
-                style={styles.textInput}
-                placeholder="You may provide additional details such as dish name, menu description, recipe, etc. (Optional)"
-                value={textInput}
-                onChangeText={setTextInput}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-                placeholderTextColor="#999999"
-                onFocus={() => {
-                  // Always ensure the input moves above the keyboard when focused
-                  // Single scroll attempt after keyboard has time to appear
-                  setTimeout(() => {
-                    if (inputContainerRef.current && scrollViewRef.current) {
-                      inputContainerRef.current.measureLayout(
-                        scrollViewRef.current as any,
-                        (x, y) => {
-                          // Scroll to show input with padding above
-                          scrollViewRef.current?.scrollTo({
-                            y: Math.max(0, y - 100),
-                            animated: true,
-                          });
-                        },
-                        () => {
-                          // Fallback: scroll to end
-                          scrollViewRef.current?.scrollToEnd({ animated: true });
-                        }
-                      );
-                    } else if (scrollViewRef.current) {
-                      // Fallback: scroll to end if measureLayout fails
-                      scrollViewRef.current.scrollToEnd({ animated: true });
-                    }
-                  }, 300);
-                }}
-              />
-            </View>
-
-          </ScrollView>
+              {/* Text Input Field */}
+              <View ref={inputContainerRef} style={styles.inputContainer}>
+                <TextInput
+                  ref={textInputRef}
+                  style={styles.textInput}
+                  placeholder="You may provide additional details such as dish name, menu description, recipe, etc. (Optional)"
+                  value={textInput}
+                  onChangeText={setTextInput}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  placeholderTextColor="#999999"
+                  onFocus={() => {
+                    setTimeout(() => {
+                      if (inputContainerRef.current && scrollViewRef.current) {
+                        inputContainerRef.current.measureLayout(
+                          scrollViewRef.current as any,
+                          (x, y) => {
+                            scrollViewRef.current?.scrollTo({
+                              y: Math.max(0, y - 100),
+                              animated: true,
+                            });
+                          },
+                          () => {
+                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                          }
+                        );
+                      } else if (scrollViewRef.current) {
+                        scrollViewRef.current.scrollToEnd({ animated: true });
+                      }
+                    }, 300);
+                  }}
+                />
+              </View>
+            </ScrollView>
           </View>
         </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
 
-      {/* Submit Button - Fixed at Bottom (its own KeyboardAvoidingView so it hugs the keyboard without jumping too high) */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'position' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        <BottomButtonContainer paddingHorizontal={0} compactBottom={isKeyboardVisible}>
-          <View style={{ paddingHorizontal: 10 }}>
-            <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.submitButtonText}>
-                {isSubmitting ? 'Analyzing...' : 'Submit'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {/* Submit Button - Fixed at Bottom (same as FeedbackScreen) */}
+        <BottomButtonContainer paddingHorizontal={10}>
+          <TouchableOpacity
+            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitButtonText}>
+              {isSubmitting ? 'Analyzing...' : 'Submit'}
+            </Text>
+          </TouchableOpacity>
         </BottomButtonContainer>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -607,6 +593,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
